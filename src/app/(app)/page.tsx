@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-medium text-zinc-900 dark:text-zinc-50">Open work orders</h2>
-            <Link href="/work-orders" className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50">
+            <Link href="/job-board" className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50">
               View all
             </Link>
           </div>

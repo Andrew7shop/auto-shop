@@ -5,8 +5,7 @@ import { usePathname } from "next/navigation";
 
 const SECTIONS = [
   { href: "/", label: "Dashboard" },
-  { href: "/job-board", label: "Job Board" },
-  { href: "/work-orders", label: "Work Orders" },
+  { href: "/job-board", label: "Job Board", matchPrefixes: ["/job-board", "/work-orders"] },
   { href: "/tech-board", label: "Tech Board" },
   { href: "/appointments", label: "Appointments" },
   { href: "/inventory", label: "Inventory" },
@@ -35,7 +34,9 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 space-y-0.5 px-2 py-3">
         {SECTIONS.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const prefixes = item.matchPrefixes ?? [item.href];
+          const isActive =
+            item.href === "/" ? pathname === "/" : prefixes.some((p) => pathname.startsWith(p));
           return (
             <Link
               key={item.href}
