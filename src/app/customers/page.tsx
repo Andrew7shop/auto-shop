@@ -1,10 +1,24 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { SearchFilterBar } from "@/components/search-filter-bar";
 
 export const dynamic = "force-dynamic";
 
-export default async function CustomersPage() {
+export default async function CustomersPage({ searchParams }: PageProps<"/customers">) {
+  const { q } = await searchParams;
+  const searchTerm = typeof q === "string" ? q.trim() : "";
+
   const customers = await prisma.customer.findMany({
+    where: searchTerm
+      ? {
+          OR: [
+            { firstName: { contains: searchTerm, mode: "insensitive" } },
+            { lastName: { contains: searchTerm, mode: "insensitive" } },
+            { phone: { contains: searchTerm, mode: "insensitive" } },
+            { email: { contains: searchTerm, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
     include: { vehicles: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
@@ -21,9 +35,13 @@ export default async function CustomersPage() {
         </Link>
       </div>
 
+      <SearchFilterBar q={searchTerm} placeholder="Search by name, phone, or email" basePath="/customers" />
+
       <div className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
         {customers.length === 0 && (
-          <p className="px-4 py-6 text-center text-sm text-zinc-500">No customers yet.</p>
+          <p className="px-4 py-6 text-center text-sm text-zinc-500">
+            {searchTerm ? "No customers match your search." : "No customers yet."}
+          </p>
         )}
         {customers.map((customer) => (
           <Link

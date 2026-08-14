@@ -6,6 +6,7 @@ import { formatCurrency, computeLineItemTotal, computeInvoiceTotals } from "@/li
 import { recordPayment, updateTaxRate, voidInvoice } from "../actions";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { formatDate } from "@/lib/datetime";
+import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,26 +32,61 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
 
   const isSettled = invoice.status === "PAID" || invoice.status === "VOID";
 
+  const vehicle = invoice.workOrder.vehicle;
+  const customer = invoice.customer;
+
   return (
     <div className="space-y-8">
+      <div className="hidden print:block">
+        <p className="text-lg font-semibold">Wrench &amp; Wheel</p>
+      </div>
+
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             Invoice #{invoice.number}
           </h1>
           <p className="text-sm text-zinc-500">
-            <Link href={`/customers/${invoice.customer.id}`} className="underline">
-              {invoice.customer.firstName} {invoice.customer.lastName}
+            <Link href={`/customers/${customer.id}`} className="underline">
+              {customer.firstName} {customer.lastName}
             </Link>{" "}
-            · {invoice.workOrder.vehicle.year} {invoice.workOrder.vehicle.make}{" "}
-            {invoice.workOrder.vehicle.model} ·{" "}
+            · {vehicle.year} {vehicle.make} {vehicle.model} ·{" "}
             <Link href={`/work-orders/${invoice.workOrder.id}`} className="underline">
               Work order #{invoice.workOrder.number}
             </Link>
           </p>
         </div>
-        <Badge status={invoice.status} />
+        <div className="flex items-center gap-3">
+          <Badge status={invoice.status} />
+          <PrintButton className={`${secondaryButtonClass} print:hidden`} />
+        </div>
       </div>
+
+      <section className="grid grid-cols-1 gap-6 text-sm sm:grid-cols-2">
+        <div>
+          <p className="text-xs uppercase text-zinc-500">Bill to</p>
+          <p className="font-medium text-zinc-900 dark:text-zinc-50">
+            {customer.firstName} {customer.lastName}
+          </p>
+          {customer.address && <p className="text-zinc-600 dark:text-zinc-400">{customer.address}</p>}
+          {customer.phone && <p className="text-zinc-600 dark:text-zinc-400">{customer.phone}</p>}
+          {customer.email && <p className="text-zinc-600 dark:text-zinc-400">{customer.email}</p>}
+        </div>
+        <div className="sm:text-right">
+          <p className="text-xs uppercase text-zinc-500">Vehicle</p>
+          <p className="text-zinc-900 dark:text-zinc-50">
+            {vehicle.year} {vehicle.make} {vehicle.model}
+          </p>
+          {vehicle.vin && <p className="text-zinc-600 dark:text-zinc-400">VIN: {vehicle.vin}</p>}
+          {vehicle.licensePlate && (
+            <p className="text-zinc-600 dark:text-zinc-400">Plate: {vehicle.licensePlate}</p>
+          )}
+          <p className="mt-2 text-xs uppercase text-zinc-500">Issued</p>
+          <p className="text-zinc-900 dark:text-zinc-50">
+            {formatDate(invoice.issuedAt, { month: "long", day: "numeric", year: "numeric" })}
+          </p>
+        </div>
+      </section>
 
       <section className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-sm">
@@ -114,7 +150,7 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
       </section>
 
       {!isSettled && (
-        <section className="flex flex-wrap items-start gap-6">
+        <section className="flex flex-wrap items-start gap-6 print:hidden">
           <form action={updateTaxRate} className="flex items-end gap-2">
             <input type="hidden" name="invoiceId" value={invoice.id} />
             <div>
@@ -168,7 +204,7 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
         </div>
 
         {!isSettled && balance > 0 && (
-          <form action={recordPayment} className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <form action={recordPayment} className="mt-4 grid grid-cols-2 gap-3 print:hidden sm:grid-cols-4">
             <input type="hidden" name="invoiceId" value={invoice.id} />
             <div>
               <label htmlFor="amount" className={labelClass}>

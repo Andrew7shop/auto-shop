@@ -1,11 +1,35 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
+import { SearchFilterBar } from "@/components/search-filter-bar";
+import { WORK_ORDER_STATUSES } from "@/lib/statuses";
+import type { WorkOrderStatus } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
-export default async function WorkOrdersPage() {
+export default async function WorkOrdersPage({ searchParams }: PageProps<"/work-orders">) {
+  const { q, status } = await searchParams;
+  const searchTerm = typeof q === "string" ? q.trim() : "";
+  const statusFilter =
+    typeof status === "string" && WORK_ORDER_STATUSES.some((s) => s.value === status)
+      ? (status as WorkOrderStatus)
+      : undefined;
+
   const workOrders = await prisma.workOrder.findMany({
+    where: {
+      status: statusFilter,
+      ...(searchTerm
+        ? {
+            OR: [
+              { description: { contains: searchTerm, mode: "insensitive" } },
+              { customer: { firstName: { contains: searchTerm, mode: "insensitive" } } },
+              { customer: { lastName: { contains: searchTerm, mode: "insensitive" } } },
+              { vehicle: { make: { contains: searchTerm, mode: "insensitive" } } },
+              { vehicle: { model: { contains: searchTerm, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    },
     include: { customer: true, vehicle: true },
     orderBy: { openedAt: "desc" },
   });
@@ -22,9 +46,19 @@ export default async function WorkOrdersPage() {
         </Link>
       </div>
 
+      <SearchFilterBar
+        q={searchTerm}
+        placeholder="Search by customer, vehicle, or description"
+        statusOptions={WORK_ORDER_STATUSES}
+        statusValue={statusFilter}
+        basePath="/work-orders"
+      />
+
       <div className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
         {workOrders.length === 0 && (
-          <p className="px-4 py-6 text-center text-sm text-zinc-500">No work orders yet.</p>
+          <p className="px-4 py-6 text-center text-sm text-zinc-500">
+            {searchTerm || statusFilter ? "No work orders match your filters." : "No work orders yet."}
+          </p>
         )}
         {workOrders.map((wo) => (
           <Link

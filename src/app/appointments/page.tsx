@@ -4,13 +4,35 @@ import { Badge } from "@/components/badge";
 import { updateAppointmentStatus } from "./actions";
 import { inputClass, secondaryButtonClass } from "@/components/form";
 import { formatDate, formatTime } from "@/lib/datetime";
+import { SearchFilterBar } from "@/components/search-filter-bar";
+import { APPOINTMENT_STATUSES } from "@/lib/statuses";
+import type { AppointmentStatus } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
 const STATUSES = ["SCHEDULED", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "NO_SHOW", "CANCELLED"] as const;
 
-export default async function AppointmentsPage() {
+export default async function AppointmentsPage({ searchParams }: PageProps<"/appointments">) {
+  const { q, status } = await searchParams;
+  const searchTerm = typeof q === "string" ? q.trim() : "";
+  const statusFilter =
+    typeof status === "string" && APPOINTMENT_STATUSES.some((s) => s.value === status)
+      ? (status as AppointmentStatus)
+      : undefined;
+
   const appointments = await prisma.appointment.findMany({
+    where: {
+      status: statusFilter,
+      ...(searchTerm
+        ? {
+            OR: [
+              { reason: { contains: searchTerm, mode: "insensitive" } },
+              { customer: { firstName: { contains: searchTerm, mode: "insensitive" } } },
+              { customer: { lastName: { contains: searchTerm, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    },
     include: { customer: true, vehicle: true },
     orderBy: { startsAt: "asc" },
   });
@@ -39,9 +61,17 @@ export default async function AppointmentsPage() {
         </Link>
       </div>
 
+      <SearchFilterBar
+        q={searchTerm}
+        placeholder="Search by customer or reason"
+        statusOptions={APPOINTMENT_STATUSES}
+        statusValue={statusFilter}
+        basePath="/appointments"
+      />
+
       {appointments.length === 0 && (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
-          No appointments scheduled.
+          {searchTerm || statusFilter ? "No appointments match your filters." : "No appointments scheduled."}
         </p>
       )}
 
