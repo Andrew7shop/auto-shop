@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { fromShopInputValue } from "@/lib/datetime";
 
 const createSchema = z.object({
   customerId: z.string().min(1),
@@ -24,7 +25,7 @@ export async function createAppointment(formData: FormData) {
     notes: formData.get("notes") || undefined,
   });
 
-  const startsAt = new Date(data.startsAt);
+  const startsAt = fromShopInputValue(data.startsAt);
   const endsAt = new Date(startsAt.getTime() + data.durationMinutes * 60 * 1000);
 
   await prisma.appointment.create({
@@ -57,7 +58,7 @@ export async function updateAppointment(formData: FormData) {
     notes: formData.get("notes") || undefined,
   });
 
-  const startsAt = new Date(data.startsAt);
+  const startsAt = fromShopInputValue(data.startsAt);
   const endsAt = new Date(startsAt.getTime() + data.durationMinutes * 60 * 1000);
 
   await prisma.appointment.update({

@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { formatCurrency, computeLineItemTotal, computeInvoiceTotals } from "@/lib/money";
 import { recordPayment, updateTaxRate, voidInvoice } from "../actions";
+import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
+import { formatDate } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
-import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 
 export default async function InvoiceDetailPage({ params }: PageProps<"/invoices/[id]">) {
   const { id } = await params;
@@ -158,7 +159,7 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
                   {formatCurrency(payment.amount)} · {payment.method.replaceAll("_", " ")}
                 </p>
                 <p className="text-xs text-zinc-500">
-                  {payment.paidAt.toLocaleDateString("en-US")}
+                  {formatDate(payment.paidAt)}
                   {payment.reference && ` · Ref: ${payment.reference}`}
                 </p>
               </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { formatCurrency, computeInvoiceTotals } from "@/lib/money";
+import { formatDateTime } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,7 @@ export default async function DashboardPage() {
                     {appt.customer.firstName} {appt.customer.lastName} — {appt.reason}
                   </p>
                   <p className="text-xs text-zinc-500">
-                    {appt.startsAt.toLocaleString("en-US", {
+                    {formatDateTime(appt.startsAt, {
                       weekday: "short",
                       month: "short",
                       day: "numeric",

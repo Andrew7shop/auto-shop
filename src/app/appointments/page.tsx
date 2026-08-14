@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { updateAppointmentStatus } from "./actions";
 import { inputClass, secondaryButtonClass } from "@/components/form";
+import { formatDate, formatTime } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function AppointmentsPage() {
 
   const groups = new Map<string, typeof appointments>();
   for (const appt of appointments) {
-    const key = appt.startsAt.toLocaleDateString("en-US", {
+    const key = formatDate(appt.startsAt, {
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -52,7 +53,7 @@ export default async function AppointmentsPage() {
               <div key={appt.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                    {appt.startsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} —{" "}
+                    {formatTime(appt.startsAt)} —{" "}
                     {appt.customer.firstName} {appt.customer.lastName}
                   </p>
                   <p className="text-xs text-zinc-500">

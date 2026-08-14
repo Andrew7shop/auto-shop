@@ -3,13 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { updateAppointment, deleteAppointment } from "../../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
 import { DeleteButton } from "@/components/delete-button";
+import { toShopInputValue } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
-
-function toLocalInputValue(date: Date): string {
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
 
 export default async function EditAppointmentPage({ params }: PageProps<"/appointments/[id]/edit">) {
   const { id } = await params;
@@ -75,7 +71,7 @@ export default async function EditAppointmentPage({ params }: PageProps<"/appoin
               name="startsAt"
               type="datetime-local"
               required
-              defaultValue={toLocalInputValue(appointment.startsAt)}
+              defaultValue={toShopInputValue(appointment.startsAt)}
               className={inputClass}
             />
           </div>
