@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { logout } from "@/app/login/actions";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -15,7 +16,7 @@ export function Nav() {
         <Link href="/" className="font-semibold text-zinc-900 dark:text-zinc-50">
           Wrench &amp; Wheel
         </Link>
-        <nav className="flex gap-4 text-sm">
+        <nav className="flex flex-1 gap-4 text-sm">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -26,6 +27,14 @@ export function Nav() {
             </Link>
           ))}
         </nav>
+        <form action={logout}>
+          <button
+            type="submit"
+            className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50"
+          >
+            Log out
+          </button>
+        </form>
       </div>
     </header>
   );
