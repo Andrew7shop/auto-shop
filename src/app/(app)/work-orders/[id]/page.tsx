@@ -3,7 +3,13 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { formatCurrency, computeLineItemTotal, sumLineItems } from "@/lib/money";
-import { updateWorkOrderStatus, addLineItem, removeLineItem, generateInvoice } from "../actions";
+import {
+  updateWorkOrderStatus,
+  assignTechnician,
+  addLineItem,
+  removeLineItem,
+  generateInvoice,
+} from "../actions";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { ActionPanel } from "@/components/action-panel";
 
@@ -27,15 +33,22 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
   const { id } = await params;
   const { error } = await searchParams;
 
-  const workOrder = await prisma.workOrder.findUnique({
-    where: { id },
-    include: {
-      customer: true,
-      vehicle: true,
-      lineItems: { orderBy: { createdAt: "asc" } },
-      invoice: true,
-    },
-  });
+  const [workOrder, technicians] = await Promise.all([
+    prisma.workOrder.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        vehicle: true,
+        lineItems: { orderBy: { createdAt: "asc" } },
+        invoice: true,
+        assignedTo: true,
+      },
+    }),
+    prisma.employee.findMany({
+      where: { role: "TECHNICIAN", active: true },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+  ]);
 
   if (!workOrder) notFound();
 
@@ -238,6 +251,32 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
             </select>
             <button type="submit" className={`${secondaryButtonClass} w-full`}>
               Update status
+            </button>
+          </form>
+
+          <form
+            action={assignTechnician}
+            className="space-y-2 border-t border-zinc-200 pt-4 dark:border-zinc-800"
+          >
+            <input type="hidden" name="workOrderId" value={workOrder.id} />
+            <label htmlFor="assignedToId" className={labelClass}>
+              Assigned technician
+            </label>
+            <select
+              id="assignedToId"
+              name="assignedToId"
+              defaultValue={workOrder.assignedToId ?? ""}
+              className={`${inputClass} w-full`}
+            >
+              <option value="">Unassigned</option>
+              {technicians.map((tech) => (
+                <option key={tech.id} value={tech.id}>
+                  {tech.firstName} {tech.lastName}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className={`${secondaryButtonClass} w-full`}>
+              Update assignment
             </button>
           </form>
 

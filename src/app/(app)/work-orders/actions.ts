@@ -88,6 +88,26 @@ export async function updateWorkOrderStatus(formData: FormData) {
   revalidatePath("/work-orders");
 }
 
+const assignSchema = z.object({
+  workOrderId: z.string().min(1),
+  assignedToId: z.string().optional(),
+});
+
+export async function assignTechnician(formData: FormData) {
+  const data = assignSchema.parse({
+    workOrderId: formData.get("workOrderId"),
+    assignedToId: formData.get("assignedToId") || undefined,
+  });
+
+  await prisma.workOrder.update({
+    where: { id: data.workOrderId },
+    data: { assignedToId: data.assignedToId || null },
+  });
+
+  revalidatePath(`/work-orders/${data.workOrderId}`);
+  revalidatePath("/tech-board");
+}
+
 async function assertLineItemsEditable(workOrderId: string) {
   const invoice = await prisma.invoice.findUnique({ where: { workOrderId } });
   if (invoice) {
