@@ -4,6 +4,8 @@ import { updateAppointment, deleteAppointment } from "../../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
 import { DeleteButton } from "@/components/delete-button";
 
+export const dynamic = "force-dynamic";
+
 function toLocalInputValue(date: Date): string {
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);

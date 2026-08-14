@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 
+export const dynamic = "force-dynamic";
+
 export default async function WorkOrdersPage() {
   const workOrders = await prisma.workOrder.findMany({
     include: { customer: true, vehicle: true },

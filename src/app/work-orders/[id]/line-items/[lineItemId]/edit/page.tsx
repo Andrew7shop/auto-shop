@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { updateLineItem } from "../../../../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
 
+export const dynamic = "force-dynamic";
+
 export default async function EditLineItemPage({
   params,
 }: PageProps<"/work-orders/[id]/line-items/[lineItemId]/edit">) {

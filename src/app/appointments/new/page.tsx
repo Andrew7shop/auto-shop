@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { createAppointment } from "../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewAppointmentPage({ searchParams }: PageProps<"/appointments/new">) {
   const { customerId } = await searchParams;
   const selectedCustomerId = typeof customerId === "string" ? customerId : undefined;

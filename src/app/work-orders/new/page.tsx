@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { createWorkOrder } from "../actions";
 import { Field, inputClass, labelClass, primaryButtonClass } from "@/components/form";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewWorkOrderPage({ searchParams }: PageProps<"/work-orders/new">) {
   const { customerId } = await searchParams;
   const selectedCustomerId = typeof customerId === "string" ? customerId : undefined;

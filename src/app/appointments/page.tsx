@@ -4,6 +4,8 @@ import { Badge } from "@/components/badge";
 import { updateAppointmentStatus } from "./actions";
 import { inputClass, secondaryButtonClass } from "@/components/form";
 
+export const dynamic = "force-dynamic";
+
 const STATUSES = ["SCHEDULED", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "NO_SHOW", "CANCELLED"] as const;
 
 export default async function AppointmentsPage() {

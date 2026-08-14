@@ -6,6 +6,8 @@ import { addVehicle, updateVehicle, deleteCustomer, deleteVehicle } from "../act
 import { Field, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { DeleteButton } from "@/components/delete-button";
 
+export const dynamic = "force-dynamic";
+
 const ERROR_MESSAGES: Record<string, string> = {
   "has-records": "This customer can't be deleted because they have work orders or invoices on file.",
   "vehicle-has-work-orders": "That vehicle can't be deleted because it has work orders on file.",

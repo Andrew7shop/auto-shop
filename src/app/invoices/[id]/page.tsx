@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { formatCurrency, computeLineItemTotal, computeInvoiceTotals } from "@/lib/money";
 import { recordPayment, updateTaxRate, voidInvoice } from "../actions";
+
+export const dynamic = "force-dynamic";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 
 export default async function InvoiceDetailPage({ params }: PageProps<"/invoices/[id]">) {

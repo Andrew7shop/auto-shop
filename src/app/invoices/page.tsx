@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { formatCurrency, computeInvoiceTotals } from "@/lib/money";
 
+export const dynamic = "force-dynamic";
+
 export default async function InvoicesPage() {
   const invoices = await prisma.invoice.findMany({
     include: { customer: true, workOrder: { include: { lineItems: true } }, payments: true },

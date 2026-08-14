@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { updateCustomer } from "../../actions";
 import { Field, inputClass, labelClass, primaryButtonClass } from "@/components/form";
 
+export const dynamic = "force-dynamic";
+
 export default async function EditCustomerPage({ params }: PageProps<"/customers/[id]/edit">) {
   const { id } = await params;
 

@@ -10,6 +10,8 @@ import {
   removeLineItem,
   generateInvoice,
 } from "../actions";
+
+export const dynamic = "force-dynamic";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 
 const STATUSES = [
