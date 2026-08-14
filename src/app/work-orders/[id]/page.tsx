@@ -11,8 +11,9 @@ import {
   generateInvoice,
 } from "../actions";
 
-export const dynamic = "force-dynamic";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
+
+export const dynamic = "force-dynamic";
 
 const STATUSES = [
   "OPEN",
@@ -23,8 +24,14 @@ const STATUSES = [
   "CANCELLED",
 ] as const;
 
-export default async function WorkOrderDetailPage({ params }: PageProps<"/work-orders/[id]">) {
+const ERROR_MESSAGES: Record<string, string> = {
+  invoiced:
+    "Line items are locked because an invoice has already been generated for this work order.",
+};
+
+export default async function WorkOrderDetailPage({ params, searchParams }: PageProps<"/work-orders/[id]">) {
   const { id } = await params;
+  const { error } = await searchParams;
 
   const workOrder = await prisma.workOrder.findUnique({
     where: { id },
@@ -39,9 +46,16 @@ export default async function WorkOrderDetailPage({ params }: PageProps<"/work-o
   if (!workOrder) notFound();
 
   const subtotal = sumLineItems(workOrder.lineItems);
+  const errorMessage = typeof error === "string" ? ERROR_MESSAGES[error] : undefined;
 
   return (
     <div className="space-y-8">
+      {errorMessage && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
+          {errorMessage}
+        </div>
+      )}
+
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
@@ -146,7 +160,7 @@ export default async function WorkOrderDetailPage({ params }: PageProps<"/work-o
                 <th className="px-4 py-2 text-right">Qty</th>
                 <th className="px-4 py-2 text-right">Unit price</th>
                 <th className="px-4 py-2 text-right">Total</th>
-                <th className="px-4 py-2" />
+                {!workOrder.invoice && <th className="px-4 py-2" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
@@ -170,21 +184,23 @@ export default async function WorkOrderDetailPage({ params }: PageProps<"/work-o
                   <td className="px-4 py-2 text-right text-zinc-900 dark:text-zinc-50">
                     {formatCurrency(computeLineItemTotal(item.quantity, item.unitPrice))}
                   </td>
-                  <td className="px-4 py-2 text-right whitespace-nowrap">
-                    <Link
-                      href={`/work-orders/${workOrder.id}/line-items/${item.id}/edit`}
-                      className="text-xs text-zinc-500 hover:underline"
-                    >
-                      Edit
-                    </Link>{" "}
-                    <form action={removeLineItem} className="inline">
-                      <input type="hidden" name="lineItemId" value={item.id} />
-                      <input type="hidden" name="workOrderId" value={workOrder.id} />
-                      <button type="submit" className="text-xs text-red-600 hover:underline">
-                        Remove
-                      </button>
-                    </form>
-                  </td>
+                  {!workOrder.invoice && (
+                    <td className="px-4 py-2 text-right whitespace-nowrap">
+                      <Link
+                        href={`/work-orders/${workOrder.id}/line-items/${item.id}/edit`}
+                        className="text-xs text-zinc-500 hover:underline"
+                      >
+                        Edit
+                      </Link>{" "}
+                      <form action={removeLineItem} className="inline">
+                        <input type="hidden" name="lineItemId" value={item.id} />
+                        <input type="hidden" name="workOrderId" value={workOrder.id} />
+                        <button type="submit" className="text-xs text-red-600 hover:underline">
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -202,6 +218,15 @@ export default async function WorkOrderDetailPage({ params }: PageProps<"/work-o
           </table>
         </div>
 
+        {workOrder.invoice ? (
+          <p className="mt-4 text-sm text-zinc-500">
+            Line items are locked because{" "}
+            <Link href={`/invoices/${workOrder.invoice.id}`} className="underline">
+              an invoice
+            </Link>{" "}
+            has been generated for this work order.
+          </p>
+        ) : (
         <details className="mt-4 rounded-lg border border-dashed border-zinc-300 px-4 py-3 dark:border-zinc-700">
           <summary className="cursor-pointer text-sm font-medium text-zinc-600 dark:text-zinc-400">
             + Add line item
@@ -261,6 +286,7 @@ export default async function WorkOrderDetailPage({ params }: PageProps<"/work-o
             </button>
           </form>
         </details>
+        )}
       </section>
     </div>
   );

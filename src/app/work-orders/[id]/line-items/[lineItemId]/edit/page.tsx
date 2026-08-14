@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updateLineItem } from "../../../../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
@@ -12,6 +12,9 @@ export default async function EditLineItemPage({
 
   const lineItem = await prisma.lineItem.findUnique({ where: { id: lineItemId } });
   if (!lineItem || lineItem.workOrderId !== id) notFound();
+
+  const invoice = await prisma.invoice.findUnique({ where: { workOrderId: id } });
+  if (invoice) redirect(`/work-orders/${id}?error=invoiced`);
 
   return (
     <div className="max-w-xl space-y-6">

@@ -87,6 +87,13 @@ export async function updateWorkOrderStatus(formData: FormData) {
   revalidatePath("/work-orders");
 }
 
+async function assertLineItemsEditable(workOrderId: string) {
+  const invoice = await prisma.invoice.findUnique({ where: { workOrderId } });
+  if (invoice) {
+    redirect(`/work-orders/${workOrderId}?error=invoiced`);
+  }
+}
+
 const lineItemSchema = z.object({
   workOrderId: z.string().min(1),
   type: z.enum(["LABOR", "PART"]),
@@ -103,6 +110,8 @@ export async function addLineItem(formData: FormData) {
     quantity: formData.get("quantity"),
     unitPrice: formData.get("unitPrice"),
   });
+
+  await assertLineItemsEditable(data.workOrderId);
 
   await prisma.lineItem.create({
     data: {
@@ -131,6 +140,8 @@ export async function updateLineItem(formData: FormData) {
     unitPrice: formData.get("unitPrice"),
   });
 
+  await assertLineItemsEditable(data.workOrderId);
+
   await prisma.lineItem.update({
     where: { id: data.lineItemId },
     data: {
@@ -148,6 +159,8 @@ export async function updateLineItem(formData: FormData) {
 export async function removeLineItem(formData: FormData) {
   const id = z.string().min(1).parse(formData.get("lineItemId"));
   const workOrderId = z.string().min(1).parse(formData.get("workOrderId"));
+
+  await assertLineItemsEditable(workOrderId);
 
   await prisma.lineItem.delete({ where: { id } });
 
