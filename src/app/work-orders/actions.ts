@@ -55,6 +55,7 @@ export async function updateWorkOrderDetails(formData: FormData) {
   });
 
   revalidatePath(`/work-orders/${data.workOrderId}`);
+  redirect(`/work-orders/${data.workOrderId}`);
 }
 
 const statusSchema = z.object({

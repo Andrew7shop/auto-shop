@@ -80,21 +80,32 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
           <h2 className="mb-2 text-sm font-medium text-zinc-500">{day}</h2>
           <div className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
             {appts.map((appt) => (
-              <div key={appt.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                    {formatTime(appt.startsAt)} —{" "}
-                    {appt.customer.firstName} {appt.customer.lastName}
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    {appt.reason}
-                    {appt.vehicle && ` · ${appt.vehicle.year} ${appt.vehicle.make} ${appt.vehicle.model}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
+              <details key={appt.id} className="px-4 py-3">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                      {formatTime(appt.startsAt)} —{" "}
+                      {appt.customer.firstName} {appt.customer.lastName}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {appt.reason}
+                      {appt.vehicle &&
+                        ` · ${appt.vehicle.year} ${appt.vehicle.make} ${appt.vehicle.model}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge status={appt.status} />
+                    <span className="text-xs text-zinc-500 underline">Manage</span>
+                  </div>
+                </summary>
+                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
                   <form action={updateAppointmentStatus} className="flex items-center gap-2">
                     <input type="hidden" name="appointmentId" value={appt.id} />
-                    <select name="status" defaultValue={appt.status} className={`${inputClass} w-auto py-1`}>
+                    <select
+                      name="status"
+                      defaultValue={appt.status}
+                      className={`${inputClass} w-auto py-1`}
+                    >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
                           {s.replaceAll("_", " ")}
@@ -102,18 +113,17 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
                       ))}
                     </select>
                     <button type="submit" className={secondaryButtonClass}>
-                      Update
+                      Update status
                     </button>
                   </form>
-                  <Badge status={appt.status} />
                   <Link
                     href={`/appointments/${appt.id}/edit`}
-                    className="text-xs text-zinc-500 hover:underline"
+                    className="text-sm text-zinc-500 hover:underline"
                   >
                     Edit
                   </Link>
                 </div>
-              </div>
+              </details>
             ))}
           </div>
         </div>
