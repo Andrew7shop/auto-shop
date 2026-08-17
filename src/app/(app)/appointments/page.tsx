@@ -1,133 +1,203 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/badge";
-import { updateAppointmentStatus } from "./actions";
-import { inputClass, secondaryButtonClass } from "@/components/form";
-import { formatDate, formatTime } from "@/lib/datetime";
-import { SearchFilterBar } from "@/components/search-filter-bar";
-import { APPOINTMENT_STATUSES } from "@/lib/statuses";
-import type { AppointmentStatus } from "@/generated/prisma/enums";
+import {
+  formatTime,
+  shopDateKey,
+  shopMinutesSinceMidnight,
+  mondayOfWeek,
+  addDaysToKey,
+  fromShopInputValue,
+} from "@/lib/datetime";
+import { layoutOverlaps, formatHourLabel, APPOINTMENT_BLOCK_COLORS } from "@/lib/calendar";
 
 export const dynamic = "force-dynamic";
 
-const STATUSES = ["SCHEDULED", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "NO_SHOW", "CANCELLED"] as const;
+const START_HOUR = 8;
+const END_HOUR = 17; // 5 PM
+const PX_PER_MIN = 1;
+const DAY_MINUTES = (END_HOUR - START_HOUR) * 60;
+const DAY_HEIGHT = DAY_MINUTES * PX_PER_MIN;
+const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
+const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 export default async function AppointmentsPage({ searchParams }: PageProps<"/appointments">) {
-  const { q, status } = await searchParams;
-  const searchTerm = typeof q === "string" ? q.trim() : "";
-  const statusFilter =
-    typeof status === "string" && APPOINTMENT_STATUSES.some((s) => s.value === status)
-      ? (status as AppointmentStatus)
-      : undefined;
+  const { week } = await searchParams;
+  const requestedWeek = typeof week === "string" ? week : undefined;
+  const todayKey = shopDateKey(new Date());
+  const weekStart = mondayOfWeek(requestedWeek ?? todayKey);
+  const dayKeys = Array.from({ length: 5 }, (_, i) => addDaysToKey(weekStart, i));
+
+  const rangeStart = fromShopInputValue(`${dayKeys[0]}T00:00`);
+  const rangeEnd = fromShopInputValue(`${addDaysToKey(dayKeys[4], 1)}T00:00`);
 
   const appointments = await prisma.appointment.findMany({
-    where: {
-      status: statusFilter,
-      ...(searchTerm
-        ? {
-            OR: [
-              { reason: { contains: searchTerm, mode: "insensitive" } },
-              { customer: { firstName: { contains: searchTerm, mode: "insensitive" } } },
-              { customer: { lastName: { contains: searchTerm, mode: "insensitive" } } },
-            ],
-          }
-        : {}),
-    },
+    where: { startsAt: { gte: rangeStart, lt: rangeEnd } },
     include: { customer: true, vehicle: true },
     orderBy: { startsAt: "asc" },
   });
 
-  const groups = new Map<string, typeof appointments>();
+  const byDay = new Map<string, typeof appointments>();
   for (const appt of appointments) {
-    const key = formatDate(appt.startsAt, {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(appt);
+    const key = shopDateKey(appt.startsAt);
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key)!.push(appt);
   }
+
+  const prevWeek = addDaysToKey(weekStart, -7);
+  const nextWeek = addDaysToKey(weekStart, 7);
+  const currentWeek = mondayOfWeek(todayKey);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Appointments</h1>
-        <Link
-          href="/appointments/new"
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-        >
-          New appointment
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Appointments</h1>
+          <p className="text-sm text-zinc-500">
+            Week of {formatMonthDay(dayKeys[0])} – {formatMonthDay(dayKeys[4])}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/appointments?week=${prevWeek}`}
+            className="rounded-md border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            ← Prev
+          </Link>
+          <Link
+            href={`/appointments?week=${currentWeek}`}
+            className="rounded-md border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            Today
+          </Link>
+          <Link
+            href={`/appointments?week=${nextWeek}`}
+            className="rounded-md border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            Next →
+          </Link>
+          <Link
+            href="/appointments/new"
+            className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            New appointment
+          </Link>
+        </div>
       </div>
 
-      <SearchFilterBar
-        q={searchTerm}
-        placeholder="Search by customer or reason"
-        statusOptions={APPOINTMENT_STATUSES}
-        statusValue={statusFilter}
-        basePath="/appointments"
-      />
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div className="grid min-w-[900px] grid-cols-[4rem_repeat(5,1fr)]">
+          {/* Header row */}
+          <div className="border-b border-r border-zinc-200 dark:border-zinc-800" />
+          {dayKeys.map((key, i) => (
+            <div
+              key={key}
+              className={`border-b border-r border-zinc-200 px-2 py-3 text-center last:border-r-0 dark:border-zinc-800 ${
+                key === todayKey ? "bg-blue-50 dark:bg-blue-950/40" : ""
+              }`}
+            >
+              <p className="text-xs text-zinc-500">{DAY_LABELS[i]}</p>
+              <p
+                className={`text-sm font-semibold ${
+                  key === todayKey ? "text-blue-700 dark:text-blue-300" : "text-zinc-900 dark:text-zinc-50"
+                }`}
+              >
+                {formatMonthDay(key)}
+              </p>
+            </div>
+          ))}
+
+          {/* Time labels */}
+          <div className="relative border-r border-zinc-200 dark:border-zinc-800" style={{ height: DAY_HEIGHT }}>
+            {HOURS.map((hour) => (
+              <div
+                key={hour}
+                className="absolute left-0 right-1 -translate-y-1/2 text-right text-xs text-zinc-400"
+                style={{ top: (hour - START_HOUR) * 60 * PX_PER_MIN }}
+              >
+                {formatHourLabel(hour)}
+              </div>
+            ))}
+          </div>
+
+          {/* Day columns */}
+          {dayKeys.map((key) => {
+            const dayAppointments = byDay.get(key) ?? [];
+            const laidOut = layoutOverlaps(dayAppointments);
+            return (
+              <div
+                key={key}
+                className={`relative border-r border-zinc-200 last:border-r-0 dark:border-zinc-800 ${
+                  key === todayKey ? "bg-blue-50/40 dark:bg-blue-950/10" : ""
+                }`}
+                style={{ height: DAY_HEIGHT }}
+              >
+                {HOURS.map((hour) => (
+                  <div
+                    key={hour}
+                    className="absolute left-0 right-0 border-t border-zinc-100 dark:border-zinc-900"
+                    style={{ top: (hour - START_HOUR) * 60 * PX_PER_MIN }}
+                  />
+                ))}
+
+                {laidOut.map(({ item: appt, lane, laneCount }) => {
+                  const startMin = clamp(
+                    shopMinutesSinceMidnight(appt.startsAt) - START_HOUR * 60,
+                    0,
+                    DAY_MINUTES
+                  );
+                  const endMin = clamp(
+                    shopMinutesSinceMidnight(appt.endsAt) - START_HOUR * 60,
+                    0,
+                    DAY_MINUTES
+                  );
+                  const top = startMin * PX_PER_MIN;
+                  const height = Math.max((endMin - startMin) * PX_PER_MIN, 24);
+                  const colors =
+                    APPOINTMENT_BLOCK_COLORS[appt.status] ??
+                    "border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900";
+
+                  return (
+                    <Link
+                      key={appt.id}
+                      href={`/appointments/${appt.id}/edit`}
+                      className={`absolute overflow-hidden rounded-md border px-1.5 py-1 text-xs leading-tight hover:ring-2 hover:ring-zinc-400 ${colors}`}
+                      style={{
+                        top,
+                        height,
+                        left: `calc(${(lane / laneCount) * 100}% + 2px)`,
+                        width: `calc(${100 / laneCount}% - 4px)`,
+                      }}
+                    >
+                      <p className="truncate font-medium text-zinc-900 dark:text-zinc-50">
+                        {formatTime(appt.startsAt)} {appt.customer.firstName} {appt.customer.lastName}
+                      </p>
+                      <p className="truncate text-zinc-600 dark:text-zinc-400">
+                        {appt.reason}
+                        {appt.vehicle && ` · ${appt.vehicle.year} ${appt.vehicle.make} ${appt.vehicle.model}`}
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {appointments.length === 0 && (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
-          {searchTerm || statusFilter ? "No appointments match your filters." : "No appointments scheduled."}
+          No appointments scheduled this week.
         </p>
       )}
-
-      {[...groups.entries()].map(([day, appts]) => (
-        <div key={day}>
-          <h2 className="mb-2 text-sm font-medium text-zinc-500">{day}</h2>
-          <div className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
-            {appts.map((appt) => (
-              <details key={appt.id} className="px-4 py-3">
-                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                      {formatTime(appt.startsAt)} —{" "}
-                      {appt.customer.firstName} {appt.customer.lastName}
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      {appt.reason}
-                      {appt.vehicle &&
-                        ` · ${appt.vehicle.year} ${appt.vehicle.make} ${appt.vehicle.model}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge status={appt.status} />
-                    <span className="text-xs text-zinc-500 underline">Manage</span>
-                  </div>
-                </summary>
-                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-                  <form action={updateAppointmentStatus} className="flex items-center gap-2">
-                    <input type="hidden" name="appointmentId" value={appt.id} />
-                    <select
-                      name="status"
-                      defaultValue={appt.status}
-                      className={`${inputClass} w-auto py-1`}
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s.replaceAll("_", " ")}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className={secondaryButtonClass}>
-                      Update status
-                    </button>
-                  </form>
-                  <Link
-                    href={`/appointments/${appt.id}/edit`}
-                    className="text-sm text-zinc-500 hover:underline"
-                  >
-                    Edit
-                  </Link>
-                </div>
-              </details>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function formatMonthDay(dateKey: string): string {
+  const [, month, day] = dateKey.split("-").map(Number);
+  return `${month}/${day}`;
 }

@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { updateAppointment, deleteAppointment } from "../../actions";
-import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
+import { updateAppointment, updateAppointmentStatus, deleteAppointment } from "../../actions";
+import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { DeleteButton } from "@/components/delete-button";
 import { toShopInputValue } from "@/lib/datetime";
+import { APPOINTMENT_STATUSES } from "@/lib/statuses";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,22 @@ export default async function EditAppointmentPage({ params }: PageProps<"/appoin
       <p className="text-sm text-zinc-500">
         For {appointment.customer.firstName} {appointment.customer.lastName}
       </p>
+
+      <form action={updateAppointmentStatus} className="flex items-center gap-2">
+        <input type="hidden" name="appointmentId" value={appointment.id} />
+        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</span>
+        <select name="status" defaultValue={appointment.status} className={`${inputClass} w-auto py-1`}>
+          {APPOINTMENT_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className={secondaryButtonClass}>
+          Update status
+        </button>
+      </form>
+
       <form action={updateAppointment} className="space-y-4">
         <input type="hidden" name="appointmentId" value={appointment.id} />
         <input type="hidden" name="customerId" value={appointment.customerId} />

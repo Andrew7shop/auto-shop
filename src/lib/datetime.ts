@@ -60,3 +60,30 @@ export function fromShopInputValue(dateTimeLocal: string): Date {
   const offsetMs = guessUtcMs - zonedAsUtcMs;
   return new Date(guessUtcMs + offsetMs);
 }
+
+/** Returns the shop-local calendar date as a "YYYY-MM-DD" key. */
+export function shopDateKey(date: Date): string {
+  return date.toLocaleDateString("en-CA", { timeZone: SHOP_TIMEZONE });
+}
+
+/** Returns the number of minutes past midnight, in shop-local time. */
+export function shopMinutesSinceMidnight(date: Date): number {
+  const p = zonedParts(date, SHOP_TIMEZONE);
+  return p.hour * 60 + p.minute;
+}
+
+/** Shifts a "YYYY-MM-DD" date key by N calendar days. */
+export function addDaysToKey(dateKey: string, days: number): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  utc.setUTCDate(utc.getUTCDate() + days);
+  return utc.toISOString().slice(0, 10);
+}
+
+/** Returns the "YYYY-MM-DD" key of the Monday on or before the given date key. */
+export function mondayOfWeek(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay(); // 0=Sun..6=Sat
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  return addDaysToKey(dateKey, diff);
+}
