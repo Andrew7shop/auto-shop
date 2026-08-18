@@ -332,3 +332,19 @@ model OrderLineItem {
   @@index([orderId])
   @@index([partId])
 }
+
+model CannedJob {
+  id          String      @id @default(cuid())
+  name        String
+  category    JobCategory @default(OTHER)
+  description String?
+  laborHours  Decimal?    @db.Decimal(6, 2)
+  price       Decimal     @default(0) @db.Decimal(10, 2)
+  active      Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, active])
+  @@index([name])
+}
