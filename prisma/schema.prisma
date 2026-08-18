@@ -219,3 +219,90 @@ model Appointment {
   @@index([customerId])
   @@index([startsAt])
 }
+
+model Vendor {
+  id          String  @id @default(cuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+
+  parts  Part[]
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model Part {
+  id             String  @id @default(cuid())
+  sku            String? @unique
+  name           String
+  description    String?
+  quantityOnHand Int     @default(0)
+  reorderPoint   Int     @default(0)
+  unitCost       Decimal @default(0) @db.Decimal(10, 2)
+  unitPrice      Decimal @default(0) @db.Decimal(10, 2)
+
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  orderLineItems OrderLineItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([name])
+}
+
+enum OrderStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+
+model Order {
+  id     String      @id @default(cuid())
+  number Int         @unique @default(autoincrement())
+  status OrderStatus @default(DRAFT)
+  notes  String?
+
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+
+  lineItems OrderLineItem[]
+
+  orderedAt  DateTime?
+  expectedAt DateTime?
+  receivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+}
+
+model OrderLineItem {
+  id          String @id @default(cuid())
+  description String
+  quantity    Int    @default(1)
+  unitCost    Decimal @default(0) @db.Decimal(10, 2)
+
+  orderId String
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  partId String?
+  part   Part?   @relation(fields: [partId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([partId])
+}
