@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createWorkOrder } from "../actions";
 import { Field, inputClass, labelClass, primaryButtonClass } from "@/components/form";
+import { JOB_CATEGORIES } from "@/lib/statuses";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,18 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
             {selectedCustomer.vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.year} {v.make} {v.model}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="category" className={labelClass}>
+            Job category
+          </label>
+          <select id="category" name="category" className={inputClass} defaultValue="OTHER">
+            {JOB_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
               </option>
             ))}
           </select>

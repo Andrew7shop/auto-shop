@@ -12,6 +12,7 @@ import {
 } from "../actions";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { ActionPanel } from "@/components/action-panel";
+import { JOB_CATEGORIES } from "@/lib/statuses";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +34,13 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
   const { id } = await params;
   const { error } = await searchParams;
 
-  const [workOrder, technicians] = await Promise.all([
+  const [workOrder, technicians, parts] = await Promise.all([
     prisma.workOrder.findUnique({
       where: { id },
       include: {
         customer: true,
         vehicle: true,
-        lineItems: { orderBy: { createdAt: "asc" } },
+        lineItems: { orderBy: { createdAt: "asc" }, include: { part: true } },
         invoice: true,
         assignedTo: true,
       },
@@ -48,12 +49,14 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
       where: { role: "TECHNICIAN", active: true },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     }),
+    prisma.part.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   if (!workOrder) notFound();
 
   const subtotal = sumLineItems(workOrder.lineItems);
   const errorMessage = typeof error === "string" ? ERROR_MESSAGES[error] : undefined;
+  const categoryLabel = JOB_CATEGORIES.find((c) => c.value === workOrder.category)?.label ?? workOrder.category;
 
   return (
     <div className="space-y-8">
@@ -81,7 +84,8 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-8">
           <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-sm text-zinc-700 dark:text-zinc-300">{workOrder.description}</p>
+            <p className="text-xs uppercase text-zinc-500">{categoryLabel}</p>
+            <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{workOrder.description}</p>
             {workOrder.odometer && (
               <p className="mt-1 text-xs text-zinc-500">Odometer: {workOrder.odometer} mi</p>
             )}
@@ -112,7 +116,10 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
                   {workOrder.lineItems.map((item) => (
                     <tr key={item.id}>
                       <td className="px-4 py-2 text-zinc-500">{item.type}</td>
-                      <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">{item.description}</td>
+                      <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">
+                        {item.description}
+                        {item.part && <p className="text-xs text-zinc-500">Linked: {item.part.name}</p>}
+                      </td>
                       <td className="px-4 py-2 text-right text-zinc-900 dark:text-zinc-50">
                         {item.quantity.toString()}
                       </td>
@@ -182,6 +189,7 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
                       <select id="type" name="type" className={inputClass} defaultValue="LABOR">
                         <option value="LABOR">Labor</option>
                         <option value="PART">Part</option>
+                        <option value="FEE">Fee</option>
                       </select>
                     </div>
                     <div>
@@ -190,6 +198,19 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
                       </label>
                       <input id="description" name="description" required className={inputClass} />
                     </div>
+                  </div>
+                  <div>
+                    <label htmlFor="partId" className={labelClass}>
+                      Link inventory part (optional)
+                    </label>
+                    <select id="partId" name="partId" className={inputClass} defaultValue="">
+                      <option value="">None</option>
+                      {parts.map((part) => (
+                        <option key={part.id} value={part.id}>
+                          {part.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

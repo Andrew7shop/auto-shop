@@ -138,6 +138,21 @@ export async function receiveOrder(formData: FormData) {
   redirect(`/orders/${orderId}`);
 }
 
+export async function markOrderPaid(formData: FormData) {
+  const { orderId } = placeOrderSchema.parse({ orderId: formData.get("orderId") });
+  const redirectTo = emptyToUndefined(formData.get("redirectTo")) ?? `/orders/${orderId}`;
+
+  await prisma.order.updateMany({
+    where: { id: orderId, status: { in: ["ORDERED", "RECEIVED"] }, paidAt: null },
+    data: { paidAt: new Date() },
+  });
+
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/orders");
+  revalidatePath("/reports/accounts-payable");
+  redirect(redirectTo);
+}
+
 export async function cancelOrder(formData: FormData) {
   const { orderId } = placeOrderSchema.parse({ orderId: formData.get("orderId") });
 

@@ -5,9 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
+const JOB_CATEGORY_VALUES = ["MAINTENANCE", "REPAIR", "TIRES", "INSPECTION", "DIAGNOSTIC", "OTHER"] as const;
+
 const createSchema = z.object({
   customerId: z.string().min(1),
   vehicleId: z.string().min(1),
+  category: z.enum(JOB_CATEGORY_VALUES),
   description: z.string().min(1, "Description is required"),
   odometer: z.coerce.number().int().min(0).optional(),
 });
@@ -16,6 +19,7 @@ export async function createWorkOrder(formData: FormData) {
   const data = createSchema.parse({
     customerId: formData.get("customerId"),
     vehicleId: formData.get("vehicleId"),
+    category: formData.get("category"),
     description: formData.get("description"),
     odometer: formData.get("odometer") || undefined,
   });
@@ -24,6 +28,7 @@ export async function createWorkOrder(formData: FormData) {
     data: {
       customerId: data.customerId,
       vehicleId: data.vehicleId,
+      category: data.category,
       description: data.description,
       odometer: data.odometer ?? null,
     },
@@ -35,6 +40,7 @@ export async function createWorkOrder(formData: FormData) {
 
 const updateDetailsSchema = z.object({
   workOrderId: z.string().min(1),
+  category: z.enum(JOB_CATEGORY_VALUES),
   description: z.string().min(1, "Description is required"),
   odometer: z.coerce.number().int().min(0).optional(),
 });
@@ -42,6 +48,7 @@ const updateDetailsSchema = z.object({
 export async function updateWorkOrderDetails(formData: FormData) {
   const data = updateDetailsSchema.parse({
     workOrderId: formData.get("workOrderId"),
+    category: formData.get("category"),
     description: formData.get("description"),
     odometer: formData.get("odometer") || undefined,
   });
@@ -49,6 +56,7 @@ export async function updateWorkOrderDetails(formData: FormData) {
   await prisma.workOrder.update({
     where: { id: data.workOrderId },
     data: {
+      category: data.category,
       description: data.description,
       odometer: data.odometer ?? null,
     },
@@ -117,16 +125,23 @@ async function assertLineItemsEditable(workOrderId: string) {
 
 const lineItemSchema = z.object({
   workOrderId: z.string().min(1),
-  type: z.enum(["LABOR", "PART"]),
+  type: z.enum(["LABOR", "PART", "FEE"]),
+  partId: z.string().optional(),
   description: z.string().min(1, "Description is required"),
   quantity: z.coerce.number().positive(),
   unitPrice: z.coerce.number().min(0),
 });
 
+function emptyToUndefined(value: FormDataEntryValue | null) {
+  const str = value?.toString().trim();
+  return str ? str : undefined;
+}
+
 export async function addLineItem(formData: FormData) {
   const data = lineItemSchema.parse({
     workOrderId: formData.get("workOrderId"),
     type: formData.get("type"),
+    partId: emptyToUndefined(formData.get("partId")),
     description: formData.get("description"),
     quantity: formData.get("quantity"),
     unitPrice: formData.get("unitPrice"),
@@ -138,6 +153,7 @@ export async function addLineItem(formData: FormData) {
     data: {
       workOrderId: data.workOrderId,
       type: data.type,
+      partId: data.partId,
       description: data.description,
       quantity: data.quantity,
       unitPrice: data.unitPrice,
@@ -156,6 +172,7 @@ export async function updateLineItem(formData: FormData) {
     lineItemId: formData.get("lineItemId"),
     workOrderId: formData.get("workOrderId"),
     type: formData.get("type"),
+    partId: emptyToUndefined(formData.get("partId")),
     description: formData.get("description"),
     quantity: formData.get("quantity"),
     unitPrice: formData.get("unitPrice"),
@@ -167,6 +184,7 @@ export async function updateLineItem(formData: FormData) {
     where: { id: data.lineItemId },
     data: {
       type: data.type,
+      partId: data.partId ?? null,
       description: data.description,
       quantity: data.quantity,
       unitPrice: data.unitPrice,

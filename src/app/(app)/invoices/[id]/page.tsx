@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { formatCurrency, computeLineItemTotal, computeInvoiceTotals } from "@/lib/money";
-import { recordPayment, updateTaxRate, voidInvoice } from "../actions";
+import { recordPayment, updateCharges, voidInvoice } from "../actions";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { formatDate } from "@/lib/datetime";
 import { PrintButton } from "@/components/print-button";
@@ -25,9 +25,9 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
 
   if (!invoice) notFound();
 
-  const { subtotal, tax, total, paid, balance } = computeInvoiceTotals(
+  const { subtotal, discountAmount, tax, tireFee, total, paid, balance } = computeInvoiceTotals(
     invoice.workOrder.lineItems,
-    invoice.taxRate,
+    invoice,
     invoice.payments
   );
 
@@ -123,12 +123,29 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
                   </td>
                   <td className="px-4 py-2 text-right">{formatCurrency(subtotal)}</td>
                 </tr>
+                {discountAmount > 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-2 text-right">
+                      Discount
+                      {invoice.discountType === "PERCENT" && ` (${invoice.discountValue.toString()}%)`}
+                    </td>
+                    <td className="px-4 py-2 text-right">-{formatCurrency(discountAmount)}</td>
+                  </tr>
+                )}
                 <tr>
                   <td colSpan={3} className="px-4 py-2 text-right">
                     Tax ({(Number(invoice.taxRate) * 100).toFixed(2)}%)
                   </td>
                   <td className="px-4 py-2 text-right">{formatCurrency(tax)}</td>
                 </tr>
+                {tireFee > 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-2 text-right">
+                      Tire fee
+                    </td>
+                    <td className="px-4 py-2 text-right">{formatCurrency(tireFee)}</td>
+                  </tr>
+                )}
                 <tr className="font-medium">
                   <td colSpan={3} className="px-4 py-2 text-right">
                     Total
@@ -223,23 +240,70 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
 
           {!isSettled && (
             <div className="space-y-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-              <form action={updateTaxRate} className="space-y-2">
+              <form action={updateCharges} className="space-y-2">
                 <input type="hidden" name="invoiceId" value={invoice.id} />
-                <label htmlFor="taxRate" className={labelClass}>
-                  Tax rate
-                </label>
-                <input
-                  id="taxRate"
-                  name="taxRate"
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  max="1"
-                  defaultValue={invoice.taxRate.toString()}
-                  className={inputClass}
-                />
+                <p className={labelClass}>Charges</p>
+                <div>
+                  <label htmlFor="taxRate" className={labelClass}>
+                    Tax rate
+                  </label>
+                  <input
+                    id="taxRate"
+                    name="taxRate"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    max="1"
+                    defaultValue={invoice.taxRate.toString()}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="discountType" className={labelClass}>
+                      Discount type
+                    </label>
+                    <select
+                      id="discountType"
+                      name="discountType"
+                      className={inputClass}
+                      defaultValue={invoice.discountType}
+                    >
+                      <option value="FIXED">Flat $</option>
+                      <option value="PERCENT">Percent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="discountValue" className={labelClass}>
+                      Discount
+                    </label>
+                    <input
+                      id="discountValue"
+                      name="discountValue"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      defaultValue={invoice.discountValue.toString()}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="tireFeeTotal" className={labelClass}>
+                    Tire fee
+                  </label>
+                  <input
+                    id="tireFeeTotal"
+                    name="tireFeeTotal"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={invoice.tireFeeTotal.toString()}
+                    className={inputClass}
+                  />
+                </div>
                 <button type="submit" className={`${secondaryButtonClass} w-full`}>
-                  Update tax rate
+                  Update charges
                 </button>
               </form>
 

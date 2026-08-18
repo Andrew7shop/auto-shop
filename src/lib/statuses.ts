@@ -1,4 +1,9 @@
-import type { WorkOrderStatus, InvoiceStatus, AppointmentStatus } from "@/generated/prisma/enums";
+import type {
+  WorkOrderStatus,
+  InvoiceStatus,
+  AppointmentStatus,
+  JobCategory,
+} from "@/generated/prisma/enums";
 
 export const WORK_ORDER_STATUSES: { value: WorkOrderStatus; label: string }[] = [
   { value: "OPEN", label: "Open" },
@@ -14,6 +19,15 @@ export const INVOICE_STATUSES: { value: InvoiceStatus; label: string }[] = [
   { value: "PARTIALLY_PAID", label: "Partially paid" },
   { value: "PAID", label: "Paid" },
   { value: "VOID", label: "Void" },
+];
+
+export const JOB_CATEGORIES: { value: JobCategory; label: string }[] = [
+  { value: "MAINTENANCE", label: "Maintenance" },
+  { value: "REPAIR", label: "Repair" },
+  { value: "TIRES", label: "Tires" },
+  { value: "INSPECTION", label: "Inspection" },
+  { value: "DIAGNOSTIC", label: "Diagnostic" },
+  { value: "OTHER", label: "Other" },
 ];
 
 export const APPOINTMENT_STATUSES: { value: AppointmentStatus; label: string }[] = [

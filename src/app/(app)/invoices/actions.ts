@@ -34,7 +34,7 @@ export async function recordPayment(formData: FormData) {
     },
   });
 
-  const { total, paid } = computeInvoiceTotals(invoice.workOrder.lineItems, invoice.taxRate, [
+  const { total, paid } = computeInvoiceTotals(invoice.workOrder.lineItems, invoice, [
     ...invoice.payments,
     { amount: data.amount },
   ]);
@@ -50,20 +50,31 @@ export async function recordPayment(formData: FormData) {
   revalidatePath("/invoices");
 }
 
-const taxRateSchema = z.object({
+const chargesSchema = z.object({
   invoiceId: z.string().min(1),
   taxRate: z.coerce.number().min(0).max(1),
+  discountType: z.enum(["PERCENT", "FIXED"]),
+  discountValue: z.coerce.number().min(0),
+  tireFeeTotal: z.coerce.number().min(0),
 });
 
-export async function updateTaxRate(formData: FormData) {
-  const data = taxRateSchema.parse({
+export async function updateCharges(formData: FormData) {
+  const data = chargesSchema.parse({
     invoiceId: formData.get("invoiceId"),
     taxRate: formData.get("taxRate"),
+    discountType: formData.get("discountType"),
+    discountValue: formData.get("discountValue"),
+    tireFeeTotal: formData.get("tireFeeTotal"),
   });
 
   await prisma.invoice.update({
     where: { id: data.invoiceId },
-    data: { taxRate: data.taxRate },
+    data: {
+      taxRate: data.taxRate,
+      discountType: data.discountType,
+      discountValue: data.discountValue,
+      tireFeeTotal: data.tireFeeTotal,
+    },
   });
 
   revalidatePath(`/invoices/${data.invoiceId}`);

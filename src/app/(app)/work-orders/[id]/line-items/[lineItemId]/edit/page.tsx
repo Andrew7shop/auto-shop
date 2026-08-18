@@ -16,6 +16,8 @@ export default async function EditLineItemPage({
   const invoice = await prisma.invoice.findUnique({ where: { workOrderId: id } });
   if (invoice) redirect(`/work-orders/${id}?error=invoiced`);
 
+  const parts = await prisma.part.findMany({ orderBy: { name: "asc" } });
+
   return (
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Edit line item</h1>
@@ -30,6 +32,7 @@ export default async function EditLineItemPage({
             <select id="type" name="type" className={inputClass} defaultValue={lineItem.type}>
               <option value="LABOR">Labor</option>
               <option value="PART">Part</option>
+              <option value="FEE">Fee</option>
             </select>
           </div>
           <div>
@@ -44,6 +47,19 @@ export default async function EditLineItemPage({
               className={inputClass}
             />
           </div>
+        </div>
+        <div>
+          <label htmlFor="partId" className={labelClass}>
+            Link inventory part (optional)
+          </label>
+          <select id="partId" name="partId" className={inputClass} defaultValue={lineItem.partId ?? ""}>
+            <option value="">None</option>
+            {parts.map((part) => (
+              <option key={part.id} value={part.id}>
+                {part.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

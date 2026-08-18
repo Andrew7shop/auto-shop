@@ -61,6 +61,15 @@ enum WorkOrderStatus {
   CANCELLED
 }
 
+enum JobCategory {
+  MAINTENANCE
+  REPAIR
+  TIRES
+  INSPECTION
+  DIAGNOSTIC
+  OTHER
+}
+
 enum EmployeeRole {
   TECHNICIAN
   ADVISOR
@@ -86,6 +95,7 @@ model WorkOrder {
   id          String          @id @default(cuid())
   number      Int             @unique @default(autoincrement())
   status      WorkOrderStatus @default(OPEN)
+  category    JobCategory     @default(OTHER)
   description String
   odometer    Int?
 
@@ -111,11 +121,13 @@ model WorkOrder {
   @@index([vehicleId])
   @@index([status])
   @@index([assignedToId])
+  @@index([category])
 }
 
 enum LineItemType {
   LABOR
   PART
+  FEE
 }
 
 model LineItem {
@@ -128,10 +140,14 @@ model LineItem {
   workOrderId String
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
+  partId String?
+  part   Part?   @relation(fields: [partId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([workOrderId])
+  @@index([partId])
 }
 
 enum InvoiceStatus {
@@ -141,11 +157,19 @@ enum InvoiceStatus {
   VOID
 }
 
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
 model Invoice {
-  id      String        @id @default(cuid())
-  number  Int           @unique @default(autoincrement())
-  status  InvoiceStatus @default(UNPAID)
-  taxRate Decimal       @default(0) @db.Decimal(5, 4)
+  id            String        @id @default(cuid())
+  number        Int           @unique @default(autoincrement())
+  status        InvoiceStatus @default(UNPAID)
+  taxRate       Decimal       @default(0) @db.Decimal(5, 4)
+  discountType  DiscountType  @default(FIXED)
+  discountValue Decimal       @default(0) @db.Decimal(10, 2)
+  tireFeeTotal  Decimal       @default(0) @db.Decimal(10, 2)
 
   workOrderId String    @unique
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
@@ -252,6 +276,7 @@ model Part {
   vendor   Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
 
   orderLineItems OrderLineItem[]
+  lineItems      LineItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -281,6 +306,7 @@ model Order {
   orderedAt  DateTime?
   expectedAt DateTime?
   receivedAt DateTime?
+  paidAt     DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

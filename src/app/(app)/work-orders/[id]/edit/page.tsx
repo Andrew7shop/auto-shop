@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updateWorkOrderDetails } from "../../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
+import { JOB_CATEGORIES } from "@/lib/statuses";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,18 @@ export default async function EditWorkOrderPage({ params }: PageProps<"/work-ord
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Edit work order</h1>
       <form action={updateWorkOrderDetails} className="space-y-4">
         <input type="hidden" name="workOrderId" value={workOrder.id} />
+        <div>
+          <label htmlFor="category" className={labelClass}>
+            Job category
+          </label>
+          <select id="category" name="category" className={inputClass} defaultValue={workOrder.category}>
+            {JOB_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label htmlFor="description" className={labelClass}>
             Description

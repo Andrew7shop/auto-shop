@@ -57,7 +57,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<"/invoice
         {invoices.map((invoice) => {
           const { total, balance } = computeInvoiceTotals(
             invoice.workOrder.lineItems,
-            invoice.taxRate,
+            invoice,
             invoice.payments
           );
           return (

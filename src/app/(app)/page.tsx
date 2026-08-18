@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   ]);
 
   const totalOutstanding = unpaidInvoices.reduce((sum, invoice) => {
-    const { balance } = computeInvoiceTotals(invoice.workOrder.lineItems, invoice.taxRate, invoice.payments);
+    const { balance } = computeInvoiceTotals(invoice.workOrder.lineItems, invoice, invoice.payments);
     return sum + balance;
   }, 0);
 

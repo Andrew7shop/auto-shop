@@ -23,15 +23,27 @@ export function sumLineItems(items: { quantity: Moneyish; unitPrice: Moneyish }[
   return items.reduce((sum, item) => sum + computeLineItemTotal(item.quantity, item.unitPrice), 0);
 }
 
+type Charges = {
+  taxRate: Moneyish;
+  discountType: "PERCENT" | "FIXED";
+  discountValue: Moneyish;
+  tireFeeTotal: Moneyish;
+};
+
 export function computeInvoiceTotals(
   lineItems: { quantity: Moneyish; unitPrice: Moneyish }[],
-  taxRate: Moneyish,
+  charges: Charges,
   payments: { amount: Moneyish }[]
 ) {
   const subtotal = sumLineItems(lineItems);
-  const tax = subtotal * toNumber(taxRate);
-  const total = subtotal + tax;
+  const discountValue = toNumber(charges.discountValue);
+  const discountAmount =
+    charges.discountType === "PERCENT" ? subtotal * (discountValue / 100) : discountValue;
+  const discountedSubtotal = Math.max(subtotal - discountAmount, 0);
+  const tax = discountedSubtotal * toNumber(charges.taxRate);
+  const tireFee = toNumber(charges.tireFeeTotal);
+  const total = discountedSubtotal + tax + tireFee;
   const paid = payments.reduce((sum, p) => sum + toNumber(p.amount), 0);
-  const balance = total - paid;
-  return { subtotal, tax, total, paid, balance };
+  const balance = Math.round((total - paid) * 100) / 100 || 0;
+  return { subtotal, discountAmount, discountedSubtotal, tax, tireFee, total, paid, balance };
 }

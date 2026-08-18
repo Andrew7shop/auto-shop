@@ -3,7 +3,14 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { formatCurrency, computeLineItemTotal, sumLineItems } from "@/lib/money";
-import { addLineItem, removeLineItem, placeOrder, receiveOrder, cancelOrder } from "../actions";
+import {
+  addLineItem,
+  removeLineItem,
+  placeOrder,
+  receiveOrder,
+  cancelOrder,
+  markOrderPaid,
+} from "../actions";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { ActionPanel } from "@/components/action-panel";
 
@@ -219,6 +226,20 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
                 Adds each line item&apos;s quantity to on-hand inventory for linked parts.
               </p>
             </form>
+          )}
+          {(order.status === "ORDERED" || order.status === "RECEIVED") && (
+            <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
+              {order.paidAt ? (
+                <p className="text-sm text-zinc-500">Bill paid {order.paidAt.toLocaleDateString()}.</p>
+              ) : (
+                <form action={markOrderPaid}>
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <button type="submit" className={`${secondaryButtonClass} w-full`}>
+                    Mark bill paid
+                  </button>
+                </form>
+              )}
+            </div>
           )}
           {(order.status === "DRAFT" || order.status === "ORDERED") && (
             <form action={cancelOrder} className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
