@@ -19,7 +19,6 @@ const SECTIONS = [
   { href: "/shop-settings", label: "Shop Settings" },
   { href: "/payments", label: "Payments" },
   { href: "/billing", label: "Billing" },
-  { href: "/invoices", label: "Invoices" },
 ];
 
 export function Sidebar({ shopName }: { shopName: string }) {
