@@ -10,7 +10,7 @@ export default async function ShopSettingsPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Shop Settings</h1>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Shop Profile</h2>
         <p className="text-sm text-zinc-500">
           This information appears on printed invoices and reports.
         </p>
