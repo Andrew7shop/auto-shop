@@ -12,7 +12,7 @@ function emptyToUndefined(value: FormDataEntryValue | null) {
 const shopProfileSchema = z.object({
   name: z.string().min(1, "Shop name is required"),
   shopId: z.string().optional(),
-  licenseNumber: z.string().optional(),
+  ein: z.string().optional(),
   taxId: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -25,7 +25,7 @@ export async function updateShopProfile(formData: FormData) {
   const data = shopProfileSchema.parse({
     name: formData.get("name"),
     shopId: emptyToUndefined(formData.get("shopId")),
-    licenseNumber: emptyToUndefined(formData.get("licenseNumber")),
+    ein: emptyToUndefined(formData.get("ein")),
     taxId: emptyToUndefined(formData.get("taxId")),
     address: emptyToUndefined(formData.get("address")),
     city: emptyToUndefined(formData.get("city")),

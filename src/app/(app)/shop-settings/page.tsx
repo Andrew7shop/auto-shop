@@ -22,11 +22,7 @@ export default async function ShopSettingsPage() {
           <Field name="shopId" label="Shop ID" defaultValue={profile?.shopId ?? undefined} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Field
-            name="licenseNumber"
-            label="License number"
-            defaultValue={profile?.licenseNumber ?? undefined}
-          />
+          <Field name="ein" label="EIN" defaultValue={profile?.ein ?? undefined} />
           <Field name="taxId" label="Tax ID" defaultValue={profile?.taxId ?? undefined} />
         </div>
         <Field name="phone" label="Phone number" type="tel" defaultValue={profile?.phone ?? undefined} />
