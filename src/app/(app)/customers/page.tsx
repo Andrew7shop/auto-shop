@@ -20,8 +20,15 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
         }
       : undefined,
     include: { vehicles: true },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
+
+  // Postgres's default collation sorts uppercase before lowercase, so sort
+  // case-insensitively here instead of relying on the DB's `orderBy`.
+  customers.sort(
+    (a, b) =>
+      a.lastName.localeCompare(b.lastName, "en", { sensitivity: "base" }) ||
+      a.firstName.localeCompare(b.firstName, "en", { sensitivity: "base" })
+  );
 
   return (
     <div className="space-y-6">
@@ -47,16 +54,18 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
           <Link
             key={customer.id}
             href={`/customers/${customer.id}`}
-            className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+            className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
           >
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                {customer.firstName} {customer.lastName}
+                {customer.lastName}, {customer.firstName}
               </p>
-              <p className="text-xs text-zinc-500">
-                {customer.phone ?? customer.email ?? "No contact info"} ·{" "}
-                {customer.vehicles.length} vehicle{customer.vehicles.length === 1 ? "" : "s"}
-              </p>
+              <p className="text-xs text-zinc-500">{customer.phone ?? "No phone on file"}</p>
+            </div>
+            <div className="max-w-xs shrink-0 text-right text-xs text-zinc-500">
+              {customer.vehicles.length === 0
+                ? "No vehicles"
+                : customer.vehicles.map((v) => `${v.year} ${v.make} ${v.model}`).join(", ")}
             </div>
           </Link>
         ))}
