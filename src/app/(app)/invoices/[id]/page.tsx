@@ -8,20 +8,24 @@ import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from
 import { formatDate } from "@/lib/datetime";
 import { PrintButton } from "@/components/print-button";
 import { ActionPanel } from "@/components/action-panel";
+import { getShopProfile, DEFAULT_SHOP_NAME } from "@/lib/shop-profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function InvoiceDetailPage({ params }: PageProps<"/invoices/[id]">) {
   const { id } = await params;
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
-    include: {
-      customer: true,
-      workOrder: { include: { vehicle: true, lineItems: { orderBy: { createdAt: "asc" } } } },
-      payments: { orderBy: { paidAt: "desc" } },
-    },
-  });
+  const [invoice, shopProfile] = await Promise.all([
+    prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        workOrder: { include: { vehicle: true, lineItems: { orderBy: { createdAt: "asc" } } } },
+        payments: { orderBy: { paidAt: "desc" } },
+      },
+    }),
+    getShopProfile(),
+  ]);
 
   if (!invoice) notFound();
 
@@ -39,7 +43,16 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
   return (
     <div className="space-y-8">
       <div className="hidden print:block">
-        <p className="text-lg font-semibold">Wrench &amp; Wheel</p>
+        <p className="text-lg font-semibold">{shopProfile?.name || DEFAULT_SHOP_NAME}</p>
+        {shopProfile?.address && <p className="text-sm">{shopProfile.address}</p>}
+        {(shopProfile?.city || shopProfile?.state || shopProfile?.postalCode) && (
+          <p className="text-sm">
+            {[shopProfile.city, [shopProfile.state, shopProfile.postalCode].filter(Boolean).join(" ")]
+              .filter(Boolean)
+              .join(", ")}
+          </p>
+        )}
+        {shopProfile?.phone && <p className="text-sm">{shopProfile.phone}</p>}
       </div>
 
       <div className="flex items-start justify-between">

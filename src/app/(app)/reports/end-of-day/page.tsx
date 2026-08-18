@@ -4,6 +4,7 @@ import { resolveReportDay } from "@/lib/reports";
 import { ReportDayFilter } from "@/components/report-filters";
 import { formatDate } from "@/lib/datetime";
 import { PrintButton } from "@/components/print-button";
+import { getShopProfile, DEFAULT_SHOP_NAME } from "@/lib/shop-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function EndOfDayPage({ searchParams }: PageProps<"/reports
   const params = await searchParams;
   const { dateKey, start, end } = resolveReportDay(params);
 
-  const [invoices, payments, completedWorkOrders] = await Promise.all([
+  const [invoices, payments, completedWorkOrders, shopProfile] = await Promise.all([
     prisma.invoice.findMany({
       where: { issuedAt: { gte: start, lt: end } },
       include: { customer: true, workOrder: { include: { lineItems: true } }, payments: true },
@@ -23,6 +24,7 @@ export default async function EndOfDayPage({ searchParams }: PageProps<"/reports
       orderBy: { paidAt: "asc" },
     }),
     prisma.workOrder.count({ where: { completedAt: { gte: start, lt: end } } }),
+    getShopProfile(),
   ]);
 
   const invoiceTotals = invoices.map((invoice) => computeInvoiceTotals(invoice.workOrder.lineItems, invoice, invoice.payments));
@@ -38,7 +40,7 @@ export default async function EndOfDayPage({ searchParams }: PageProps<"/reports
   return (
     <div className="space-y-8">
       <div className="hidden print:block">
-        <p className="text-lg font-semibold">Wrench &amp; Wheel</p>
+        <p className="text-lg font-semibold">{shopProfile?.name || DEFAULT_SHOP_NAME}</p>
       </div>
 
       <div className="flex items-start justify-between">

@@ -22,14 +22,14 @@ const SECTIONS = [
   { href: "/invoices", label: "Invoices" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ shopName }: { shopName: string }) {
   const pathname = usePathname();
 
   return (
     <aside className="flex h-full w-56 shrink-0 flex-col overflow-y-auto border-r border-zinc-200 bg-white print:hidden dark:border-zinc-800 dark:bg-zinc-950">
       <div className="border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
         <Link href="/" className="font-semibold text-zinc-900 dark:text-zinc-50">
-          Wrench &amp; Wheel
+          {shopName}
         </Link>
       </div>
       <nav className="flex-1 space-y-0.5 px-2 py-3">

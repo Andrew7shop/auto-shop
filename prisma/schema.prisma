@@ -348,3 +348,18 @@ model CannedJob {
   @@index([category, active])
   @@index([name])
 }
+
+model ShopProfile {
+  id            String  @id @default("shop")
+  name          String  @default("")
+  shopId        String?
+  licenseNumber String?
+  taxId         String?
+  address       String?
+  city          String?
+  state         String?
+  postalCode    String?
+  phone         String?
+
+  updatedAt DateTime @updatedAt
+}
