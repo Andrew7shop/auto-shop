@@ -12,7 +12,6 @@ import {
 } from "../actions";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { ActionPanel } from "@/components/action-panel";
-import { JOB_CATEGORIES } from "@/lib/statuses";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +42,7 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
         lineItems: { orderBy: { createdAt: "asc" }, include: { part: true } },
         invoice: true,
         assignedTo: true,
+        category: true,
       },
     }),
     prisma.employee.findMany({
@@ -56,7 +56,7 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
 
   const subtotal = sumLineItems(workOrder.lineItems);
   const errorMessage = typeof error === "string" ? ERROR_MESSAGES[error] : undefined;
-  const categoryLabel = JOB_CATEGORIES.find((c) => c.value === workOrder.category)?.label ?? workOrder.category;
+  const categoryLabel = workOrder.category ? `${workOrder.category.code} — ${workOrder.category.name}` : "No category";
 
   return (
     <div className="space-y-8">

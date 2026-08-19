@@ -4,6 +4,8 @@ import { formatCurrency, computeInvoiceTotals } from "@/lib/money";
 import { formatDate } from "@/lib/datetime";
 import { resolveReportRange } from "@/lib/reports";
 import { ReportDateRangeFilter } from "@/components/report-filters";
+import { getRoSettings } from "@/lib/ro-settings";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +13,14 @@ export default async function SalesDetailsPage({ searchParams }: PageProps<"/rep
   const params = await searchParams;
   const { from, to, start, end } = resolveReportRange(params);
 
-  const invoices = await prisma.invoice.findMany({
-    where: { issuedAt: { gte: start, lt: end } },
-    include: { customer: true, workOrder: { include: { lineItems: true } }, payments: true },
-    orderBy: { issuedAt: "asc" },
-  });
+  const [invoices, roSettings] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { issuedAt: { gte: start, lt: end } },
+      include: { customer: true, workOrder: { include: { lineItems: true } }, payments: true },
+      orderBy: { issuedAt: "asc" },
+    }),
+    getRoSettings(),
+  ]);
 
   const rows = invoices.map((invoice) => ({
     invoice,
@@ -65,7 +70,7 @@ export default async function SalesDetailsPage({ searchParams }: PageProps<"/rep
               <tr key={invoice.id}>
                 <td className="px-4 py-2">
                   <Link href={`/invoices/${invoice.id}`} className="text-zinc-900 hover:underline dark:text-zinc-50">
-                    #{invoice.number}
+                    #{formatInvoiceNumber(invoice.number, roSettings)}
                   </Link>
                 </td>
                 <td className="px-4 py-2 text-zinc-500">{formatDate(invoice.issuedAt)}</td>

@@ -1,21 +1,24 @@
 import { createCannedJob } from "../actions";
 import { Field, inputClass, labelClass, primaryButtonClass } from "@/components/form";
-import { JOB_CATEGORIES } from "@/lib/statuses";
+import { getJobCategories } from "@/lib/job-categories";
 
-export default function NewCannedJobPage() {
+export default async function NewCannedJobPage() {
+  const jobCategories = await getJobCategories({ activeOnly: true });
+
   return (
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">New canned job</h1>
       <form action={createCannedJob} className="space-y-4">
         <Field name="name" label="Name" required />
         <div>
-          <label htmlFor="category" className={labelClass}>
+          <label htmlFor="categoryId" className={labelClass}>
             Category
           </label>
-          <select id="category" name="category" className={inputClass} defaultValue="OTHER">
-            {JOB_CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
+          <select id="categoryId" name="categoryId" className={inputClass} defaultValue="">
+            <option value="">No category</option>
+            {jobCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.code} — {c.name}
               </option>
             ))}
           </select>

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency, computeInvoiceTotals } from "@/lib/money";
 import { resolveReportRange } from "@/lib/reports";
 import { ReportDateRangeFilter } from "@/components/report-filters";
-import { JOB_CATEGORIES } from "@/lib/statuses";
+import { getJobCategories } from "@/lib/job-categories";
 
 export const dynamic = "force-dynamic";
 
@@ -10,24 +10,42 @@ export default async function SalesByCategoryPage({ searchParams }: PageProps<"/
   const params = await searchParams;
   const { from, to, start, end } = resolveReportRange(params);
 
-  const invoices = await prisma.invoice.findMany({
-    where: { issuedAt: { gte: start, lt: end } },
-    include: { workOrder: { include: { lineItems: true } }, payments: true },
-    orderBy: { issuedAt: "asc" },
-  });
+  const [invoices, jobCategories] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { issuedAt: { gte: start, lt: end } },
+      include: { workOrder: { include: { lineItems: true } }, payments: true },
+      orderBy: { issuedAt: "asc" },
+    }),
+    getJobCategories(),
+  ]);
 
   const byCategory = new Map<string, { count: number; total: number }>();
+  let uncategorizedTotal = { count: 0, total: 0 };
   for (const invoice of invoices) {
     const totals = computeInvoiceTotals(invoice.workOrder.lineItems, invoice, invoice.payments);
-    const category = invoice.workOrder.category;
-    const entry = byCategory.get(category) ?? { count: 0, total: 0 };
+    const categoryId = invoice.workOrder.categoryId;
+    if (!categoryId) {
+      uncategorizedTotal = { count: uncategorizedTotal.count + 1, total: uncategorizedTotal.total + totals.discountedSubtotal };
+      continue;
+    }
+    const entry = byCategory.get(categoryId) ?? { count: 0, total: 0 };
     entry.count += 1;
     entry.total += totals.discountedSubtotal;
-    byCategory.set(category, entry);
+    byCategory.set(categoryId, entry);
   }
 
-  const grandTotal = [...byCategory.values()].reduce((sum, e) => sum + e.total, 0);
-  const rows = JOB_CATEGORIES.map((c) => ({ ...c, ...(byCategory.get(c.value) ?? { count: 0, total: 0 }) }));
+  const grandTotal = invoices.reduce(
+    (sum, invoice) => sum + computeInvoiceTotals(invoice.workOrder.lineItems, invoice, invoice.payments).discountedSubtotal,
+    0
+  );
+  const rows = [
+    ...jobCategories.map((c) => ({
+      value: c.id,
+      label: `${c.code} — ${c.name}`,
+      ...(byCategory.get(c.id) ?? { count: 0, total: 0 }),
+    })),
+    ...(uncategorizedTotal.count > 0 ? [{ value: "none", label: "No category", ...uncategorizedTotal }] : []),
+  ];
 
   return (
     <div className="space-y-6">

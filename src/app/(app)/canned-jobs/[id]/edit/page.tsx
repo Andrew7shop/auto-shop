@@ -2,14 +2,17 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updateCannedJob } from "../../actions";
 import { Field, inputClass, labelClass, primaryButtonClass } from "@/components/form";
-import { JOB_CATEGORIES } from "@/lib/statuses";
+import { getJobCategories } from "@/lib/job-categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditCannedJobPage({ params }: PageProps<"/canned-jobs/[id]/edit">) {
   const { id } = await params;
 
-  const cannedJob = await prisma.cannedJob.findUnique({ where: { id } });
+  const [cannedJob, jobCategories] = await Promise.all([
+    prisma.cannedJob.findUnique({ where: { id } }),
+    getJobCategories(),
+  ]);
   if (!cannedJob) notFound();
 
   return (
@@ -19,13 +22,19 @@ export default async function EditCannedJobPage({ params }: PageProps<"/canned-j
         <input type="hidden" name="id" value={cannedJob.id} />
         <Field name="name" label="Name" required defaultValue={cannedJob.name} />
         <div>
-          <label htmlFor="category" className={labelClass}>
+          <label htmlFor="categoryId" className={labelClass}>
             Category
           </label>
-          <select id="category" name="category" className={inputClass} defaultValue={cannedJob.category}>
-            {JOB_CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
+          <select
+            id="categoryId"
+            name="categoryId"
+            className={inputClass}
+            defaultValue={cannedJob.categoryId ?? ""}
+          >
+            <option value="">No category</option>
+            {jobCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.code} — {c.name}
               </option>
             ))}
           </select>

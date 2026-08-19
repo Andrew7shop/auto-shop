@@ -5,6 +5,8 @@ import { ReportDayFilter } from "@/components/report-filters";
 import { formatDate } from "@/lib/datetime";
 import { PrintButton } from "@/components/print-button";
 import { getShopProfile, DEFAULT_SHOP_NAME } from "@/lib/shop-profile";
+import { getRoSettings } from "@/lib/ro-settings";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,7 @@ export default async function EndOfDayPage({ searchParams }: PageProps<"/reports
   const params = await searchParams;
   const { dateKey, start, end } = resolveReportDay(params);
 
-  const [invoices, payments, completedWorkOrders, shopProfile] = await Promise.all([
+  const [invoices, payments, completedWorkOrders, shopProfile, roSettings] = await Promise.all([
     prisma.invoice.findMany({
       where: { issuedAt: { gte: start, lt: end } },
       include: { customer: true, workOrder: { include: { lineItems: true } }, payments: true },
@@ -25,6 +27,7 @@ export default async function EndOfDayPage({ searchParams }: PageProps<"/reports
     }),
     prisma.workOrder.count({ where: { completedAt: { gte: start, lt: end } } }),
     getShopProfile(),
+    getRoSettings(),
   ]);
 
   const invoiceTotals = invoices.map((invoice) => computeInvoiceTotals(invoice.workOrder.lineItems, invoice, invoice.payments));
@@ -78,7 +81,9 @@ export default async function EndOfDayPage({ searchParams }: PageProps<"/reports
               )}
               {invoices.map((invoice, i) => (
                 <tr key={invoice.id}>
-                  <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">#{invoice.number}</td>
+                  <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">
+                    #{formatInvoiceNumber(invoice.number, roSettings)}
+                  </td>
                   <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">
                     {invoice.customer.firstName} {invoice.customer.lastName}
                   </td>

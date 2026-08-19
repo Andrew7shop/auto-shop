@@ -61,13 +61,20 @@ enum WorkOrderStatus {
   CANCELLED
 }
 
-enum JobCategory {
-  MAINTENANCE
-  REPAIR
-  TIRES
-  INSPECTION
-  DIAGNOSTIC
-  OTHER
+model JobCategory {
+  id        String  @id @default(cuid())
+  code      String  @unique
+  name      String
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  workOrders WorkOrder[]
+  cannedJobs CannedJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
 }
 
 enum EmployeeRole {
@@ -95,9 +102,11 @@ model WorkOrder {
   id          String          @id @default(cuid())
   number      Int             @unique @default(autoincrement())
   status      WorkOrderStatus @default(OPEN)
-  category    JobCategory     @default(OTHER)
   description String
   odometer    Int?
+
+  categoryId String?
+  category   JobCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -121,7 +130,7 @@ model WorkOrder {
   @@index([vehicleId])
   @@index([status])
   @@index([assignedToId])
-  @@index([category])
+  @@index([categoryId])
 }
 
 enum LineItemType {
@@ -315,13 +324,13 @@ model Order {
 }
 
 model OrderLineItem {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   description String
-  quantity    Int    @default(1)
+  quantity    Int     @default(1)
   unitCost    Decimal @default(0) @db.Decimal(10, 2)
 
   orderId String
-  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   partId String?
   part   Part?   @relation(fields: [partId], references: [id], onDelete: SetNull)
@@ -334,32 +343,73 @@ model OrderLineItem {
 }
 
 model CannedJob {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  category    JobCategory @default(OTHER)
   description String?
-  laborHours  Decimal?    @db.Decimal(6, 2)
-  price       Decimal     @default(0) @db.Decimal(10, 2)
-  active      Boolean     @default(true)
+  laborHours  Decimal? @db.Decimal(6, 2)
+  price       Decimal  @default(0) @db.Decimal(10, 2)
+  active      Boolean  @default(true)
+
+  categoryId String?
+  category   JobCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([category, active])
+  @@index([categoryId, active])
   @@index([name])
 }
 
 model ShopProfile {
-  id            String  @id @default("shop")
-  name          String  @default("")
-  shopId        String?
-  ein           String?
-  taxId         String?
-  address       String?
-  city          String?
-  state         String?
-  postalCode    String?
-  phone         String?
+  id         String  @id @default("shop")
+  name       String  @default("")
+  shopId     String?
+  ein        String?
+  taxId      String?
+  address    String?
+  city       String?
+  state      String?
+  postalCode String?
+  phone      String?
 
   updatedAt DateTime @updatedAt
+}
+
+model RoSettings {
+  id                    String          @id @default("ro")
+  defaultTaxRate        Decimal         @default(0) @db.Decimal(5, 4)
+  defaultDiscountType   DiscountType    @default(FIXED)
+  defaultDiscountValue  Decimal         @default(0) @db.Decimal(10, 2)
+  defaultTireFee        Decimal         @default(0) @db.Decimal(10, 2)
+  gpPerHourGoal         Decimal?        @db.Decimal(10, 2)
+  invoiceNumberPrefix   String?
+  invoiceNumberPadding  Int             @default(0)
+  enabledPaymentMethods PaymentMethod[] @default([CASH, CARD, CHECK, BANK_TRANSFER, OTHER])
+
+  updatedAt DateTime @updatedAt
+}
+
+model LaborRate {
+  id          String  @id @default(cuid())
+  name        String
+  ratePerHour Decimal @db.Decimal(10, 2)
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+}
+
+model ShopFee {
+  id     String       @id @default(cuid())
+  name   String
+  type   DiscountType @default(FIXED)
+  value  Decimal      @db.Decimal(10, 2)
+  active Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
 }

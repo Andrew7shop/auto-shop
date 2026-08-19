@@ -3,6 +3,8 @@ import { formatCurrency } from "@/lib/money";
 import { formatDate } from "@/lib/datetime";
 import { resolveReportDay } from "@/lib/reports";
 import { ReportDayFilter } from "@/components/report-filters";
+import { getRoSettings } from "@/lib/ro-settings";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +12,14 @@ export default async function CashDrawerPage({ searchParams }: PageProps<"/repor
   const params = await searchParams;
   const { dateKey, start, end } = resolveReportDay(params);
 
-  const payments = await prisma.payment.findMany({
-    where: { method: "CASH", paidAt: { gte: start, lt: end } },
-    include: { invoice: { include: { customer: true } } },
-    orderBy: { paidAt: "asc" },
-  });
+  const [payments, roSettings] = await Promise.all([
+    prisma.payment.findMany({
+      where: { method: "CASH", paidAt: { gte: start, lt: end } },
+      include: { invoice: { include: { customer: true } } },
+      orderBy: { paidAt: "asc" },
+    }),
+    getRoSettings(),
+  ]);
 
   const total = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 
@@ -48,7 +53,9 @@ export default async function CashDrawerPage({ searchParams }: PageProps<"/repor
             {payments.map((payment) => (
               <tr key={payment.id}>
                 <td className="px-4 py-2 text-zinc-500">{formatDate(payment.paidAt, { hour: "numeric", minute: "2-digit" })}</td>
-                <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">#{payment.invoice.number}</td>
+                <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">
+                  #{formatInvoiceNumber(payment.invoice.number, roSettings)}
+                </td>
                 <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">
                   {payment.invoice.customer.firstName} {payment.invoice.customer.lastName}
                 </td>

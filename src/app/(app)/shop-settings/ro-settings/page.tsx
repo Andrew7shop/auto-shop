@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { redirect } from "next/navigation";
 
-export default function RoSettingsPage() {
-  return <PlaceholderPage title="RO Settings" level="h2" />;
+export default function RoSettingsIndexPage() {
+  redirect("/shop-settings/ro-settings/labor-rates");
 }

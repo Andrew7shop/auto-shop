@@ -2,14 +2,17 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updateWorkOrderDetails } from "../../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
-import { JOB_CATEGORIES } from "@/lib/statuses";
+import { getJobCategories } from "@/lib/job-categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditWorkOrderPage({ params }: PageProps<"/work-orders/[id]/edit">) {
   const { id } = await params;
 
-  const workOrder = await prisma.workOrder.findUnique({ where: { id } });
+  const [workOrder, jobCategories] = await Promise.all([
+    prisma.workOrder.findUnique({ where: { id } }),
+    getJobCategories(),
+  ]);
   if (!workOrder) notFound();
 
   return (
@@ -18,13 +21,19 @@ export default async function EditWorkOrderPage({ params }: PageProps<"/work-ord
       <form action={updateWorkOrderDetails} className="space-y-4">
         <input type="hidden" name="workOrderId" value={workOrder.id} />
         <div>
-          <label htmlFor="category" className={labelClass}>
+          <label htmlFor="categoryId" className={labelClass}>
             Job category
           </label>
-          <select id="category" name="category" className={inputClass} defaultValue={workOrder.category}>
-            {JOB_CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
+          <select
+            id="categoryId"
+            name="categoryId"
+            className={inputClass}
+            defaultValue={workOrder.categoryId ?? ""}
+          >
+            <option value="">No category</option>
+            {jobCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.code} — {c.name}
               </option>
             ))}
           </select>

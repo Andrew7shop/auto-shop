@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createWorkOrder } from "../actions";
 import { Field, inputClass, labelClass, primaryButtonClass } from "@/components/form";
-import { JOB_CATEGORIES } from "@/lib/statuses";
+import { getJobCategories } from "@/lib/job-categories";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +10,13 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
   const { customerId } = await searchParams;
   const selectedCustomerId = typeof customerId === "string" ? customerId : undefined;
 
-  const customers = await prisma.customer.findMany({
-    include: { vehicles: true },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-  });
+  const [customers, jobCategories] = await Promise.all([
+    prisma.customer.findMany({
+      include: { vehicles: true },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    getJobCategories({ activeOnly: true }),
+  ]);
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
@@ -89,13 +92,14 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
           </select>
         </div>
         <div>
-          <label htmlFor="category" className={labelClass}>
+          <label htmlFor="categoryId" className={labelClass}>
             Job category
           </label>
-          <select id="category" name="category" className={inputClass} defaultValue="OTHER">
-            {JOB_CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
+          <select id="categoryId" name="categoryId" className={inputClass} defaultValue="">
+            <option value="">No category</option>
+            {jobCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.code} — {c.name}
               </option>
             ))}
           </select>

@@ -4,6 +4,8 @@ import { formatCurrency, computeInvoiceTotals } from "@/lib/money";
 import { formatDate } from "@/lib/datetime";
 import { resolveReportRange } from "@/lib/reports";
 import { ReportDateRangeFilter } from "@/components/report-filters";
+import { getRoSettings } from "@/lib/ro-settings";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 
 export const dynamic = "force-dynamic";
 
@@ -11,15 +13,18 @@ export default async function ProfitPage({ searchParams }: PageProps<"/reports/p
   const params = await searchParams;
   const { from, to, start, end } = resolveReportRange(params);
 
-  const invoices = await prisma.invoice.findMany({
-    where: { issuedAt: { gte: start, lt: end } },
-    include: {
-      customer: true,
-      workOrder: { include: { lineItems: { include: { part: true } } } },
-      payments: true,
-    },
-    orderBy: { issuedAt: "asc" },
-  });
+  const [invoices, roSettings] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { issuedAt: { gte: start, lt: end } },
+      include: {
+        customer: true,
+        workOrder: { include: { lineItems: { include: { part: true } } } },
+        payments: true,
+      },
+      orderBy: { issuedAt: "asc" },
+    }),
+    getRoSettings(),
+  ]);
 
   const rows = invoices.map((invoice) => {
     const totals = computeInvoiceTotals(invoice.workOrder.lineItems, invoice, invoice.payments);
@@ -27,12 +32,25 @@ export default async function ProfitPage({ searchParams }: PageProps<"/reports/p
       if (item.type !== "PART" || !item.part) return sum;
       return sum + Number(item.quantity) * Number(item.part.unitCost);
     }, 0);
-    return { invoice, revenue: totals.discountedSubtotal, cost, profit: totals.discountedSubtotal - cost };
+    const laborHours = invoice.workOrder.lineItems.reduce(
+      (sum, item) => (item.type === "LABOR" ? sum + Number(item.quantity) : sum),
+      0
+    );
+    return {
+      invoice,
+      revenue: totals.discountedSubtotal,
+      cost,
+      profit: totals.discountedSubtotal - cost,
+      laborHours,
+    };
   });
 
   const totalRevenue = rows.reduce((sum, r) => sum + r.revenue, 0);
   const totalCost = rows.reduce((sum, r) => sum + r.cost, 0);
   const totalProfit = rows.reduce((sum, r) => sum + r.profit, 0);
+  const totalLaborHours = rows.reduce((sum, r) => sum + r.laborHours, 0);
+  const actualGpPerHour = totalLaborHours > 0 ? totalProfit / totalLaborHours : null;
+  const gpPerHourGoal = roSettings?.gpPerHourGoal ? Number(roSettings.gpPerHourGoal) : null;
 
   return (
     <div className="space-y-6">
@@ -44,6 +62,28 @@ export default async function ProfitPage({ searchParams }: PageProps<"/reports/p
       </p>
 
       <ReportDateRangeFilter from={from} to={to} />
+
+      {gpPerHourGoal !== null && (
+        <div className="flex items-center gap-6 rounded-lg border border-zinc-200 px-4 py-3 text-sm dark:border-zinc-800">
+          <p className="text-zinc-500">
+            GP/hr goal: <span className="font-medium text-zinc-900 dark:text-zinc-50">{formatCurrency(gpPerHourGoal)}</span>
+          </p>
+          <p className="text-zinc-500">
+            Actual:{" "}
+            <span
+              className={`font-medium ${
+                actualGpPerHour === null
+                  ? "text-zinc-900 dark:text-zinc-50"
+                  : actualGpPerHour >= gpPerHourGoal
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+              }`}
+            >
+              {actualGpPerHour === null ? "No labor hours in range" : formatCurrency(actualGpPerHour)}
+            </span>
+          </p>
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-sm">
@@ -69,7 +109,7 @@ export default async function ProfitPage({ searchParams }: PageProps<"/reports/p
               <tr key={invoice.id}>
                 <td className="px-4 py-2">
                   <Link href={`/invoices/${invoice.id}`} className="text-zinc-900 hover:underline dark:text-zinc-50">
-                    #{invoice.number}
+                    #{formatInvoiceNumber(invoice.number, roSettings)}
                   </Link>
                 </td>
                 <td className="px-4 py-2 text-zinc-500">{formatDate(invoice.issuedAt)}</td>

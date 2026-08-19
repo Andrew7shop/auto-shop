@@ -5,6 +5,8 @@ import { formatCurrency, computeInvoiceTotals } from "@/lib/money";
 import { SearchFilterBar } from "@/components/search-filter-bar";
 import { INVOICE_STATUSES } from "@/lib/statuses";
 import type { InvoiceStatus } from "@/generated/prisma/enums";
+import { getRoSettings } from "@/lib/ro-settings";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 
 export const dynamic = "force-dynamic";
 
@@ -16,23 +18,26 @@ export default async function InvoicesPage({ searchParams }: PageProps<"/invoice
       ? (status as InvoiceStatus)
       : undefined;
 
-  const invoices = await prisma.invoice.findMany({
-    where: {
-      status: statusFilter,
-      ...(searchTerm
-        ? {
-            customer: {
-              OR: [
-                { firstName: { contains: searchTerm, mode: "insensitive" } },
-                { lastName: { contains: searchTerm, mode: "insensitive" } },
-              ],
-            },
-          }
-        : {}),
-    },
-    include: { customer: true, workOrder: { include: { lineItems: true } }, payments: true },
-    orderBy: { issuedAt: "desc" },
-  });
+  const [invoices, roSettings] = await Promise.all([
+    prisma.invoice.findMany({
+      where: {
+        status: statusFilter,
+        ...(searchTerm
+          ? {
+              customer: {
+                OR: [
+                  { firstName: { contains: searchTerm, mode: "insensitive" } },
+                  { lastName: { contains: searchTerm, mode: "insensitive" } },
+                ],
+              },
+            }
+          : {}),
+      },
+      include: { customer: true, workOrder: { include: { lineItems: true } }, payments: true },
+      orderBy: { issuedAt: "desc" },
+    }),
+    getRoSettings(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -68,7 +73,8 @@ export default async function InvoicesPage({ searchParams }: PageProps<"/invoice
             >
               <div>
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  Invoice #{invoice.number} — {invoice.customer.firstName} {invoice.customer.lastName}
+                  Invoice #{formatInvoiceNumber(invoice.number, roSettings)} — {invoice.customer.firstName}{" "}
+                  {invoice.customer.lastName}
                 </p>
                 <p className="text-xs text-zinc-500">
                   Total {formatCurrency(total)}

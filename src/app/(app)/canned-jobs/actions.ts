@@ -5,8 +5,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-const JOB_CATEGORY_VALUES = ["MAINTENANCE", "REPAIR", "TIRES", "INSPECTION", "DIAGNOSTIC", "OTHER"] as const;
-
 function emptyToUndefined(value: FormDataEntryValue | null) {
   const str = value?.toString().trim();
   return str ? str : undefined;
@@ -14,7 +12,7 @@ function emptyToUndefined(value: FormDataEntryValue | null) {
 
 const cannedJobSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  category: z.enum(JOB_CATEGORY_VALUES),
+  categoryId: z.string().optional(),
   description: z.string().optional(),
   laborHours: z.coerce.number().min(0).optional(),
   price: z.coerce.number().min(0),
@@ -23,7 +21,7 @@ const cannedJobSchema = z.object({
 export async function createCannedJob(formData: FormData) {
   const data = cannedJobSchema.parse({
     name: formData.get("name"),
-    category: formData.get("category"),
+    categoryId: emptyToUndefined(formData.get("categoryId")),
     description: emptyToUndefined(formData.get("description")),
     laborHours: emptyToUndefined(formData.get("laborHours")),
     price: formData.get("price"),
@@ -32,7 +30,7 @@ export async function createCannedJob(formData: FormData) {
   await prisma.cannedJob.create({
     data: {
       name: data.name,
-      category: data.category,
+      categoryId: data.categoryId ?? null,
       description: data.description,
       laborHours: data.laborHours,
       price: data.price,
@@ -52,7 +50,7 @@ export async function updateCannedJob(formData: FormData) {
   const data = updateCannedJobSchema.parse({
     id: formData.get("id"),
     name: formData.get("name"),
-    category: formData.get("category"),
+    categoryId: emptyToUndefined(formData.get("categoryId")),
     description: emptyToUndefined(formData.get("description")),
     laborHours: emptyToUndefined(formData.get("laborHours")),
     price: formData.get("price"),
@@ -63,7 +61,7 @@ export async function updateCannedJob(formData: FormData) {
     where: { id: data.id },
     data: {
       name: data.name,
-      category: data.category,
+      categoryId: data.categoryId ?? null,
       description: data.description ?? null,
       laborHours: data.laborHours ?? null,
       price: data.price,

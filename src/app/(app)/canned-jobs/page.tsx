@@ -2,22 +2,21 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/money";
 import { SearchFilterBar } from "@/components/search-filter-bar";
-import { JOB_CATEGORIES } from "@/lib/statuses";
-import type { JobCategory } from "@/generated/prisma/enums";
+import { getJobCategories } from "@/lib/job-categories";
 
 export const dynamic = "force-dynamic";
 
 export default async function CannedJobsPage({ searchParams }: PageProps<"/canned-jobs">) {
   const { q, status } = await searchParams;
   const searchTerm = typeof q === "string" ? q.trim() : "";
+
+  const jobCategories = await getJobCategories();
   const categoryFilter =
-    typeof status === "string" && JOB_CATEGORIES.some((c) => c.value === status)
-      ? (status as JobCategory)
-      : undefined;
+    typeof status === "string" && jobCategories.some((c) => c.id === status) ? status : undefined;
 
   const cannedJobs = await prisma.cannedJob.findMany({
     where: {
-      category: categoryFilter,
+      categoryId: categoryFilter,
       ...(searchTerm
         ? {
             OR: [
@@ -27,8 +26,11 @@ export default async function CannedJobsPage({ searchParams }: PageProps<"/canne
           }
         : {}),
     },
+    include: { category: true },
     orderBy: [{ active: "desc" }, { name: "asc" }],
   });
+
+  const categoryOptions = jobCategories.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` }));
 
   return (
     <div className="space-y-6">
@@ -45,7 +47,7 @@ export default async function CannedJobsPage({ searchParams }: PageProps<"/canne
       <SearchFilterBar
         q={searchTerm}
         placeholder="Search by name or description"
-        statusOptions={JOB_CATEGORIES}
+        statusOptions={categoryOptions}
         statusValue={categoryFilter}
         basePath="/canned-jobs"
       />
@@ -80,7 +82,7 @@ export default async function CannedJobsPage({ searchParams }: PageProps<"/canne
                   </Link>
                 </td>
                 <td className="px-4 py-2 text-zinc-500">
-                  {JOB_CATEGORIES.find((c) => c.value === job.category)?.label ?? job.category}
+                  {job.category ? `${job.category.code} — ${job.category.name}` : "—"}
                 </td>
                 <td className="px-4 py-2 text-right text-zinc-900 dark:text-zinc-50">
                   {job.laborHours ? job.laborHours.toString() : "—"}

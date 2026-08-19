@@ -4,13 +4,12 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-
-const JOB_CATEGORY_VALUES = ["MAINTENANCE", "REPAIR", "TIRES", "INSPECTION", "DIAGNOSTIC", "OTHER"] as const;
+import { getRoSettings } from "@/lib/ro-settings";
 
 const createSchema = z.object({
   customerId: z.string().min(1),
   vehicleId: z.string().min(1),
-  category: z.enum(JOB_CATEGORY_VALUES),
+  categoryId: z.string().optional(),
   description: z.string().min(1, "Description is required"),
   odometer: z.coerce.number().int().min(0).optional(),
 });
@@ -19,7 +18,7 @@ export async function createWorkOrder(formData: FormData) {
   const data = createSchema.parse({
     customerId: formData.get("customerId"),
     vehicleId: formData.get("vehicleId"),
-    category: formData.get("category"),
+    categoryId: formData.get("categoryId") || undefined,
     description: formData.get("description"),
     odometer: formData.get("odometer") || undefined,
   });
@@ -28,7 +27,7 @@ export async function createWorkOrder(formData: FormData) {
     data: {
       customerId: data.customerId,
       vehicleId: data.vehicleId,
-      category: data.category,
+      categoryId: data.categoryId ?? null,
       description: data.description,
       odometer: data.odometer ?? null,
     },
@@ -40,7 +39,7 @@ export async function createWorkOrder(formData: FormData) {
 
 const updateDetailsSchema = z.object({
   workOrderId: z.string().min(1),
-  category: z.enum(JOB_CATEGORY_VALUES),
+  categoryId: z.string().optional(),
   description: z.string().min(1, "Description is required"),
   odometer: z.coerce.number().int().min(0).optional(),
 });
@@ -48,7 +47,7 @@ const updateDetailsSchema = z.object({
 export async function updateWorkOrderDetails(formData: FormData) {
   const data = updateDetailsSchema.parse({
     workOrderId: formData.get("workOrderId"),
-    category: formData.get("category"),
+    categoryId: formData.get("categoryId") || undefined,
     description: formData.get("description"),
     odometer: formData.get("odometer") || undefined,
   });
@@ -56,7 +55,7 @@ export async function updateWorkOrderDetails(formData: FormData) {
   await prisma.workOrder.update({
     where: { id: data.workOrderId },
     data: {
-      category: data.category,
+      categoryId: data.categoryId ?? null,
       description: data.description,
       odometer: data.odometer ?? null,
     },
@@ -209,14 +208,19 @@ export async function removeLineItem(formData: FormData) {
 export async function generateInvoice(formData: FormData) {
   const workOrderId = z.string().min(1).parse(formData.get("workOrderId"));
 
-  const workOrder = await prisma.workOrder.findUniqueOrThrow({
-    where: { id: workOrderId },
-  });
+  const [workOrder, roSettings] = await Promise.all([
+    prisma.workOrder.findUniqueOrThrow({ where: { id: workOrderId } }),
+    getRoSettings(),
+  ]);
 
   const invoice = await prisma.invoice.create({
     data: {
       workOrderId: workOrder.id,
       customerId: workOrder.customerId,
+      taxRate: roSettings?.defaultTaxRate ?? 0,
+      discountType: roSettings?.defaultDiscountType ?? "FIXED",
+      discountValue: roSettings?.defaultDiscountValue ?? 0,
+      tireFeeTotal: roSettings?.defaultTireFee ?? 0,
     },
   });
 

@@ -9,13 +9,23 @@ import { formatDate } from "@/lib/datetime";
 import { PrintButton } from "@/components/print-button";
 import { ActionPanel } from "@/components/action-panel";
 import { getShopProfile, DEFAULT_SHOP_NAME } from "@/lib/shop-profile";
+import { getRoSettings, DEFAULT_RO_SETTINGS } from "@/lib/ro-settings";
+import { formatInvoiceNumber } from "@/lib/invoice-number";
 
 export const dynamic = "force-dynamic";
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: "Cash",
+  CARD: "Card",
+  CHECK: "Check",
+  BANK_TRANSFER: "Bank transfer",
+  OTHER: "Other",
+};
 
 export default async function InvoiceDetailPage({ params }: PageProps<"/invoices/[id]">) {
   const { id } = await params;
 
-  const [invoice, shopProfile] = await Promise.all([
+  const [invoice, shopProfile, roSettings] = await Promise.all([
     prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -25,9 +35,15 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
       },
     }),
     getShopProfile(),
+    getRoSettings(),
   ]);
 
   if (!invoice) notFound();
+
+  const enabledPaymentMethods =
+    roSettings?.enabledPaymentMethods && roSettings.enabledPaymentMethods.length > 0
+      ? roSettings.enabledPaymentMethods
+      : [...DEFAULT_RO_SETTINGS.enabledPaymentMethods];
 
   const { subtotal, discountAmount, tax, tireFee, total, paid, balance } = computeInvoiceTotals(
     invoice.workOrder.lineItems,
@@ -58,7 +74,7 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Invoice #{invoice.number}
+            Invoice #{formatInvoiceNumber(invoice.number, roSettings)}
           </h1>
           <p className="text-sm text-zinc-500">
             <Link href={`/customers/${customer.id}`} className="underline">
@@ -231,12 +247,17 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
                 <label htmlFor="method" className={labelClass}>
                   Method
                 </label>
-                <select id="method" name="method" className={inputClass} defaultValue="CARD">
-                  <option value="CASH">Cash</option>
-                  <option value="CARD">Card</option>
-                  <option value="CHECK">Check</option>
-                  <option value="BANK_TRANSFER">Bank transfer</option>
-                  <option value="OTHER">Other</option>
+                <select
+                  id="method"
+                  name="method"
+                  className={inputClass}
+                  defaultValue={enabledPaymentMethods.includes("CARD") ? "CARD" : enabledPaymentMethods[0]}
+                >
+                  {enabledPaymentMethods.map((method) => (
+                    <option key={method} value={method}>
+                      {PAYMENT_METHOD_LABELS[method]}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
