@@ -5,16 +5,21 @@ import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from
 import { DeleteButton } from "@/components/delete-button";
 import { toShopInputValue } from "@/lib/datetime";
 import { APPOINTMENT_STATUSES } from "@/lib/statuses";
+import { AppointmentTypeFields } from "@/components/appointment-type-fields";
+import { getAppointmentTypes } from "@/lib/appointment-types";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditAppointmentPage({ params }: PageProps<"/appointments/[id]/edit">) {
   const { id } = await params;
 
-  const appointment = await prisma.appointment.findUnique({
-    where: { id },
-    include: { customer: { include: { vehicles: true } } },
-  });
+  const [appointment, appointmentTypes] = await Promise.all([
+    prisma.appointment.findUnique({
+      where: { id },
+      include: { customer: { include: { vehicles: true } }, appointmentType: true },
+    }),
+    getAppointmentTypes(),
+  ]);
   if (!appointment) notFound();
 
   const durationMinutes = Math.round(
@@ -66,46 +71,23 @@ export default async function EditAppointmentPage({ params }: PageProps<"/appoin
             </select>
           </div>
         )}
+        <AppointmentTypeFields
+          types={appointmentTypes}
+          defaultTypeId={appointment.appointmentTypeId ?? undefined}
+          defaultDuration={durationMinutes}
+        />
         <div>
-          <label htmlFor="reason" className={labelClass}>
-            Reason <span className="text-red-500">*</span>
+          <label htmlFor="startsAt" className={labelClass}>
+            Start time <span className="text-red-500">*</span>
           </label>
           <input
-            id="reason"
-            name="reason"
+            id="startsAt"
+            name="startsAt"
+            type="datetime-local"
             required
-            defaultValue={appointment.reason}
+            defaultValue={toShopInputValue(appointment.startsAt)}
             className={inputClass}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="startsAt" className={labelClass}>
-              Start time <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="startsAt"
-              name="startsAt"
-              type="datetime-local"
-              required
-              defaultValue={toShopInputValue(appointment.startsAt)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label htmlFor="durationMinutes" className={labelClass}>
-              Duration (minutes)
-            </label>
-            <input
-              id="durationMinutes"
-              name="durationMinutes"
-              type="number"
-              min="15"
-              step="15"
-              defaultValue={durationMinutes}
-              className={inputClass}
-            />
-          </div>
         </div>
         <div>
           <label htmlFor="notes" className={labelClass}>
@@ -126,7 +108,7 @@ export default async function EditAppointmentPage({ params }: PageProps<"/appoin
       <form action={deleteAppointment}>
         <input type="hidden" name="appointmentId" value={appointment.id} />
         <DeleteButton
-          confirmText={`Delete this appointment (${appointment.reason})? This cannot be undone.`}
+          confirmText={`Delete this appointment (${appointment.appointmentType?.name ?? "this appointment"})? This cannot be undone.`}
           className="text-sm text-red-600 hover:underline"
         >
           Delete appointment

@@ -8,31 +8,59 @@ import {
   addDaysToKey,
   fromShopInputValue,
 } from "@/lib/datetime";
-import { layoutOverlaps, formatHourLabel, APPOINTMENT_BLOCK_COLORS } from "@/lib/calendar";
+import { layoutOverlaps, formatHourLabel } from "@/lib/calendar";
+import { getAppointmentSettings, DEFAULT_APPOINTMENT_SETTINGS } from "@/lib/appointment-settings";
+import { getAppointmentTypeBlockColor } from "@/lib/appointment-colors";
 
 export const dynamic = "force-dynamic";
 
-const START_HOUR = 8;
-const END_HOUR = 17; // 5 PM
-const PX_PER_MIN = 1;
-const DAY_MINUTES = (END_HOUR - START_HOUR) * 60;
-const DAY_HEIGHT = DAY_MINUTES * PX_PER_MIN;
-const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
-const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const WEEKDAY_ORDER = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+] as const;
+
+const WEEKDAY_LABELS: Record<string, string> = {
+  MONDAY: "Monday",
+  TUESDAY: "Tuesday",
+  WEDNESDAY: "Wednesday",
+  THURSDAY: "Thursday",
+  FRIDAY: "Friday",
+  SATURDAY: "Saturday",
+  SUNDAY: "Sunday",
+};
 
 export default async function AppointmentsPage({ searchParams }: PageProps<"/appointments">) {
   const { week } = await searchParams;
   const requestedWeek = typeof week === "string" ? week : undefined;
   const todayKey = shopDateKey(new Date());
   const weekStart = mondayOfWeek(requestedWeek ?? todayKey);
-  const dayKeys = Array.from({ length: 5 }, (_, i) => addDaysToKey(weekStart, i));
+
+  const settings = await getAppointmentSettings();
+  const openHour = settings?.openHour ?? DEFAULT_APPOINTMENT_SETTINGS.openHour;
+  const closeHour = settings?.closeHour ?? DEFAULT_APPOINTMENT_SETTINGS.closeHour;
+  const daysOpen = new Set<string>(settings?.daysOpen ?? DEFAULT_APPOINTMENT_SETTINGS.daysOpen);
+
+  const PX_PER_MIN = 1;
+  const DAY_MINUTES = (closeHour - openHour) * 60;
+  const DAY_HEIGHT = DAY_MINUTES * PX_PER_MIN;
+  const HOURS = Array.from({ length: closeHour - openHour + 1 }, (_, i) => openHour + i);
+
+  const dayKeys = WEEKDAY_ORDER.filter((wd) => daysOpen.has(wd)).map((wd) =>
+    addDaysToKey(weekStart, WEEKDAY_ORDER.indexOf(wd))
+  );
+  const dayLabels = WEEKDAY_ORDER.filter((wd) => daysOpen.has(wd)).map((wd) => WEEKDAY_LABELS[wd]);
 
   const rangeStart = fromShopInputValue(`${dayKeys[0]}T00:00`);
-  const rangeEnd = fromShopInputValue(`${addDaysToKey(dayKeys[4], 1)}T00:00`);
+  const rangeEnd = fromShopInputValue(`${addDaysToKey(dayKeys[dayKeys.length - 1], 1)}T00:00`);
 
   const appointments = await prisma.appointment.findMany({
     where: { startsAt: { gte: rangeStart, lt: rangeEnd } },
-    include: { customer: true, vehicle: true },
+    include: { customer: true, vehicle: true, appointmentType: true },
     orderBy: { startsAt: "asc" },
   });
 
@@ -53,7 +81,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Appointments</h1>
           <p className="text-sm text-zinc-500">
-            Week of {formatMonthDay(dayKeys[0])} – {formatMonthDay(dayKeys[4])}
+            Week of {formatMonthDay(dayKeys[0])} – {formatMonthDay(dayKeys[dayKeys.length - 1])}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -85,7 +113,10 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-        <div className="grid min-w-[900px] grid-cols-[4rem_repeat(5,1fr)]">
+        <div
+          className="grid min-w-[900px]"
+          style={{ gridTemplateColumns: `4rem repeat(${dayKeys.length}, 1fr)` }}
+        >
           {/* Header row */}
           <div className="border-b border-r border-zinc-200 dark:border-zinc-800" />
           {dayKeys.map((key, i) => (
@@ -95,7 +126,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
                 key === todayKey ? "bg-blue-50 dark:bg-blue-950/40" : ""
               }`}
             >
-              <p className="text-xs text-zinc-500">{DAY_LABELS[i]}</p>
+              <p className="text-xs text-zinc-500">{dayLabels[i]}</p>
               <p
                 className={`text-sm font-semibold ${
                   key === todayKey ? "text-blue-700 dark:text-blue-300" : "text-zinc-900 dark:text-zinc-50"
@@ -112,7 +143,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
               <div
                 key={hour}
                 className="absolute left-0 right-1 -translate-y-1/2 text-right text-xs text-zinc-400"
-                style={{ top: (hour - START_HOUR) * 60 * PX_PER_MIN }}
+                style={{ top: (hour - openHour) * 60 * PX_PER_MIN }}
               >
                 {formatHourLabel(hour)}
               </div>
@@ -135,32 +166,33 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
                   <div
                     key={hour}
                     className="absolute left-0 right-0 border-t border-zinc-100 dark:border-zinc-900"
-                    style={{ top: (hour - START_HOUR) * 60 * PX_PER_MIN }}
+                    style={{ top: (hour - openHour) * 60 * PX_PER_MIN }}
                   />
                 ))}
 
                 {laidOut.map(({ item: appt, lane, laneCount }) => {
                   const startMin = clamp(
-                    shopMinutesSinceMidnight(appt.startsAt) - START_HOUR * 60,
+                    shopMinutesSinceMidnight(appt.startsAt) - openHour * 60,
                     0,
                     DAY_MINUTES
                   );
                   const endMin = clamp(
-                    shopMinutesSinceMidnight(appt.endsAt) - START_HOUR * 60,
+                    shopMinutesSinceMidnight(appt.endsAt) - openHour * 60,
                     0,
                     DAY_MINUTES
                   );
                   const top = startMin * PX_PER_MIN;
                   const height = Math.max((endMin - startMin) * PX_PER_MIN, 24);
-                  const colors =
-                    APPOINTMENT_BLOCK_COLORS[appt.status] ??
-                    "border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900";
+                  const colors = getAppointmentTypeBlockColor(appt.appointmentType?.color);
+                  const dimmed = appt.status === "CANCELLED" || appt.status === "NO_SHOW";
 
                   return (
                     <Link
                       key={appt.id}
                       href={`/appointments/${appt.id}/edit`}
-                      className={`absolute overflow-hidden rounded-md border px-1.5 py-1 text-xs leading-tight hover:ring-2 hover:ring-zinc-400 ${colors}`}
+                      className={`absolute overflow-hidden rounded-md border px-1.5 py-1 text-xs leading-tight hover:ring-2 hover:ring-zinc-400 ${colors} ${
+                        dimmed ? "opacity-50" : ""
+                      }`}
                       style={{
                         top,
                         height,
@@ -172,7 +204,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
                         {formatTime(appt.startsAt)} {appt.customer.firstName} {appt.customer.lastName}
                       </p>
                       <p className="truncate text-zinc-600 dark:text-zinc-400">
-                        {appt.reason}
+                        {appt.appointmentType?.name ?? "—"}
                         {appt.vehicle && ` · ${appt.vehicle.year} ${appt.vehicle.make} ${appt.vehicle.model}`}
                       </p>
                     </Link>

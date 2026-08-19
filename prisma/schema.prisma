@@ -234,7 +234,6 @@ model Appointment {
   startsAt DateTime
   endsAt   DateTime
   status   AppointmentStatus @default(SCHEDULED)
-  reason   String
   notes    String?
 
   customerId String
@@ -246,11 +245,49 @@ model Appointment {
   workOrderId String?    @unique
   workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
 
+  appointmentTypeId String?
+  appointmentType   AppointmentType? @relation(fields: [appointmentTypeId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([customerId])
   @@index([startsAt])
+  @@index([appointmentTypeId])
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model AppointmentSettings {
+  id        String    @id @default("appointments")
+  openHour  Int       @default(8)
+  closeHour Int       @default(17)
+  daysOpen  Weekday[] @default([MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY])
+
+  updatedAt DateTime @updatedAt
+}
+
+model AppointmentType {
+  id                     String  @id @default(cuid())
+  name                   String
+  defaultDurationMinutes Int     @default(60)
+  color                  String  @default("blue")
+  active                 Boolean @default(true)
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
 }
 
 model Vendor {

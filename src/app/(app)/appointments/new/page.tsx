@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createAppointment } from "../actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/form";
+import { AppointmentTypeFields } from "@/components/appointment-type-fields";
+import { getAppointmentTypes } from "@/lib/appointment-types";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +11,13 @@ export default async function NewAppointmentPage({ searchParams }: PageProps<"/a
   const { customerId } = await searchParams;
   const selectedCustomerId = typeof customerId === "string" ? customerId : undefined;
 
-  const customers = await prisma.customer.findMany({
-    include: { vehicles: true },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-  });
+  const [customers, appointmentTypes] = await Promise.all([
+    prisma.customer.findMany({
+      include: { vehicles: true },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    getAppointmentTypes({ activeOnly: true }),
+  ]);
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
@@ -72,33 +77,12 @@ export default async function NewAppointmentPage({ searchParams }: PageProps<"/a
             </select>
           </div>
         )}
+        <AppointmentTypeFields types={appointmentTypes} defaultDuration={60} />
         <div>
-          <label htmlFor="reason" className={labelClass}>
-            Reason <span className="text-red-500">*</span>
+          <label htmlFor="startsAt" className={labelClass}>
+            Start time <span className="text-red-500">*</span>
           </label>
-          <input id="reason" name="reason" required className={inputClass} placeholder="e.g. Oil change" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="startsAt" className={labelClass}>
-              Start time <span className="text-red-500">*</span>
-            </label>
-            <input id="startsAt" name="startsAt" type="datetime-local" required className={inputClass} />
-          </div>
-          <div>
-            <label htmlFor="durationMinutes" className={labelClass}>
-              Duration (minutes)
-            </label>
-            <input
-              id="durationMinutes"
-              name="durationMinutes"
-              type="number"
-              min="15"
-              step="15"
-              defaultValue="60"
-              className={inputClass}
-            />
-          </div>
+          <input id="startsAt" name="startsAt" type="datetime-local" required className={inputClass} />
         </div>
         <div>
           <label htmlFor="notes" className={labelClass}>

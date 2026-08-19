@@ -16,7 +16,7 @@ export default async function DashboardPage() {
     }),
     prisma.appointment.findMany({
       where: { startsAt: { gte: new Date() }, status: { in: ["SCHEDULED", "CONFIRMED"] } },
-      include: { customer: true, vehicle: true },
+      include: { customer: true, vehicle: true, appointmentType: true },
       orderBy: { startsAt: "asc" },
       take: 5,
     }),
@@ -88,7 +88,7 @@ export default async function DashboardPage() {
               <div key={appt.id} className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                    {appt.customer.firstName} {appt.customer.lastName} — {appt.reason}
+                    {appt.customer.firstName} {appt.customer.lastName} — {appt.appointmentType?.name ?? "—"}
                   </p>
                   <p className="text-xs text-zinc-500">
                     {formatDateTime(appt.startsAt, {

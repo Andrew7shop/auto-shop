@@ -40,12 +40,3 @@ export function formatHourLabel(hour: number): string {
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
   return `${hour12} ${period}`;
 }
-
-export const APPOINTMENT_BLOCK_COLORS: Record<string, string> = {
-  SCHEDULED: "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/60",
-  CONFIRMED: "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/60",
-  IN_PROGRESS: "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/60",
-  COMPLETED: "border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900",
-  NO_SHOW: "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/60",
-  CANCELLED: "border-zinc-300 bg-zinc-100 opacity-60 dark:border-zinc-700 dark:bg-zinc-900",
-};

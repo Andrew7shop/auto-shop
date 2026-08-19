@@ -9,7 +9,7 @@ import { fromShopInputValue } from "@/lib/datetime";
 const createSchema = z.object({
   customerId: z.string().min(1),
   vehicleId: z.string().optional(),
-  reason: z.string().min(1, "Reason is required"),
+  appointmentTypeId: z.string().min(1, "Type is required"),
   startsAt: z.string().min(1, "Start time is required"),
   durationMinutes: z.coerce.number().int().positive(),
   notes: z.string().optional(),
@@ -19,7 +19,7 @@ export async function createAppointment(formData: FormData) {
   const data = createSchema.parse({
     customerId: formData.get("customerId"),
     vehicleId: formData.get("vehicleId") || undefined,
-    reason: formData.get("reason"),
+    appointmentTypeId: formData.get("appointmentTypeId"),
     startsAt: formData.get("startsAt"),
     durationMinutes: formData.get("durationMinutes"),
     notes: formData.get("notes") || undefined,
@@ -32,7 +32,7 @@ export async function createAppointment(formData: FormData) {
     data: {
       customerId: data.customerId,
       vehicleId: data.vehicleId || null,
-      reason: data.reason,
+      appointmentTypeId: data.appointmentTypeId,
       startsAt,
       endsAt,
       notes: data.notes || null,
@@ -52,7 +52,7 @@ export async function updateAppointment(formData: FormData) {
     appointmentId: formData.get("appointmentId"),
     customerId: formData.get("customerId"),
     vehicleId: formData.get("vehicleId") || undefined,
-    reason: formData.get("reason"),
+    appointmentTypeId: formData.get("appointmentTypeId"),
     startsAt: formData.get("startsAt"),
     durationMinutes: formData.get("durationMinutes"),
     notes: formData.get("notes") || undefined,
@@ -65,7 +65,7 @@ export async function updateAppointment(formData: FormData) {
     where: { id: data.appointmentId },
     data: {
       vehicleId: data.vehicleId || null,
-      reason: data.reason,
+      appointmentTypeId: data.appointmentTypeId,
       startsAt,
       endsAt,
       notes: data.notes || null,

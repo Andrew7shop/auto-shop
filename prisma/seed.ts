@@ -55,11 +55,15 @@ async function main() {
     },
   });
 
+  const oilChange = await prisma.appointmentType.create({
+    data: { name: "Oil Change", defaultDurationMinutes: 60, color: "blue" },
+  });
+
   await prisma.appointment.create({
     data: {
       customerId: jane.id,
       vehicleId: vehicle.id,
-      reason: "Oil change",
+      appointmentTypeId: oilChange.id,
       startsAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
       endsAt: new Date(Date.now() + 1000 * 60 * 60 * 25),
     },
