@@ -5,7 +5,7 @@ export default function NewMarkupTierPage() {
   return (
     <div className="max-w-md space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">New price range</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">New parts markup range</h2>
         <p className="text-sm text-zinc-500">Leave max cost blank for an open-ended top range.</p>
       </div>
       <form action={createMarkupTier} className="space-y-4">
@@ -57,7 +57,7 @@ export default function NewMarkupTierPage() {
           />
         </div>
         <button type="submit" className={primaryButtonClass}>
-          Create price range
+          Create parts markup range
         </button>
       </form>
     </div>

@@ -62,12 +62,12 @@ export default async function MarkupsSettingsPage() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Price ranges</h3>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Parts Markup</h3>
           <Link
             href="/shop-settings/markups/new"
             className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            New price range
+            New parts markup range
           </Link>
         </div>
 
@@ -84,7 +84,7 @@ export default async function MarkupsSettingsPage() {
               {tiers.length === 0 && (
                 <tr>
                   <td colSpan={3} className="px-4 py-6 text-center text-zinc-500">
-                    No price ranges yet.
+                    No parts markup ranges yet.
                   </td>
                 </tr>
               )}

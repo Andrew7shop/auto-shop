@@ -13,7 +13,7 @@ export default async function EditMarkupTierPage({ params }: PageProps<"/shop-se
 
   return (
     <div className="max-w-md space-y-6">
-      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Edit price range</h2>
+      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Edit parts markup range</h2>
       <form action={updateMarkupTier} className="space-y-4">
         <input type="hidden" name="id" value={tier.id} />
         <div className="grid grid-cols-2 gap-4">
