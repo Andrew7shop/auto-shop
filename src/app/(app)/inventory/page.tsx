@@ -4,6 +4,12 @@ import { formatCurrency } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
+const CATEGORY_LABELS: Record<string, string> = {
+  PART: "Part",
+  TIRE: "Tire",
+  BATTERY: "Battery",
+};
+
 export default async function InventoryPage() {
   const parts = await prisma.part.findMany({
     orderBy: { name: "asc" },
@@ -28,6 +34,7 @@ export default async function InventoryPage() {
             <tr>
               <th className="px-4 py-2">Part</th>
               <th className="px-4 py-2">SKU</th>
+              <th className="px-4 py-2">Category</th>
               <th className="px-4 py-2">Vendor</th>
               <th className="px-4 py-2 text-right">On hand</th>
               <th className="px-4 py-2 text-right">Unit cost</th>
@@ -37,7 +44,7 @@ export default async function InventoryPage() {
           <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
             {parts.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={7} className="px-4 py-6 text-center text-zinc-500">
                   No parts yet.
                 </td>
               </tr>
@@ -55,6 +62,7 @@ export default async function InventoryPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-2 text-zinc-500">{part.sku ?? "—"}</td>
+                  <td className="px-4 py-2 text-zinc-500">{CATEGORY_LABELS[part.category]}</td>
                   <td className="px-4 py-2 text-zinc-500">{part.vendor?.name ?? "—"}</td>
                   <td className="px-4 py-2 text-right">
                     <span

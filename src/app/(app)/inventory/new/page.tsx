@@ -22,6 +22,16 @@ export default async function NewPartPage() {
           <textarea id="description" name="description" rows={2} className={inputClass} />
         </div>
         <div>
+          <label htmlFor="category" className={labelClass}>
+            Category
+          </label>
+          <select id="category" name="category" className={inputClass} defaultValue="PART">
+            <option value="PART">Part</option>
+            <option value="TIRE">Tire</option>
+            <option value="BATTERY">Battery</option>
+          </select>
+        </div>
+        <div>
           <label htmlFor="vendorId" className={labelClass}>
             Preferred vendor
           </label>

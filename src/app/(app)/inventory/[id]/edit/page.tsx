@@ -36,6 +36,16 @@ export default async function EditPartPage({ params }: PageProps<"/inventory/[id
           />
         </div>
         <div>
+          <label htmlFor="category" className={labelClass}>
+            Category
+          </label>
+          <select id="category" name="category" className={inputClass} defaultValue={part.category}>
+            <option value="PART">Part</option>
+            <option value="TIRE">Tire</option>
+            <option value="BATTERY">Battery</option>
+          </select>
+        </div>
+        <div>
           <label htmlFor="vendorId" className={labelClass}>
             Preferred vendor
           </label>
