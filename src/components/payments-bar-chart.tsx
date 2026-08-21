@@ -6,12 +6,13 @@ import { formatCurrency } from "@/lib/money";
 type ChartPayment = {
   id: string;
   amount: number;
-  status: "SUCCEEDED" | "DECLINED";
-  label: string;
+  dateLabel: string;
+  fullLabel: string;
   customerName: string;
 };
 
 const CHART_HEIGHT = 200;
+const LABEL_HEIGHT = 40;
 const BAR_WIDTH = 18;
 const BAR_GAP = 10;
 
@@ -25,18 +26,10 @@ export function PaymentsBarChart({ payments }: { payments: ChartPayment[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-4 text-xs text-zinc-500">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-green-600 dark:bg-green-500" /> Succeeded
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-red-600 dark:bg-red-500" /> Declined
-          </span>
-        </div>
+      <div className="flex items-center justify-end">
         <p className="text-xs text-zinc-500">
           {hovered
-            ? `${hovered.customerName} · ${formatCurrency(hovered.amount)} · ${hovered.label}`
+            ? `${hovered.customerName} · ${formatCurrency(hovered.amount)} · ${hovered.fullLabel}`
             : "Hover a bar for details"}
         </p>
       </div>
@@ -52,7 +45,7 @@ export function PaymentsBarChart({ payments }: { payments: ChartPayment[] }) {
         </div>
 
         <div className="min-w-0 flex-1 overflow-x-auto">
-          <svg width={width} height={CHART_HEIGHT} className="overflow-visible">
+          <svg width={width} height={CHART_HEIGHT + LABEL_HEIGHT} className="overflow-visible">
             {yTicks.map((tick, i) => {
               const y = maxAmount > 0 ? CHART_HEIGHT - (tick / maxAmount) * CHART_HEIGHT : CHART_HEIGHT;
               return (
@@ -71,25 +64,32 @@ export function PaymentsBarChart({ payments }: { payments: ChartPayment[] }) {
               const barHeight = maxAmount > 0 ? Math.max((p.amount / maxAmount) * CHART_HEIGHT, 2) : 2;
               const x = BAR_GAP + i * (BAR_WIDTH + BAR_GAP);
               const y = CHART_HEIGHT - barHeight;
+              const labelX = x + BAR_WIDTH / 2;
               return (
-                <rect
-                  key={p.id}
-                  x={x}
-                  y={y}
-                  width={BAR_WIDTH}
-                  height={barHeight}
-                  rx={4}
-                  className={
-                    p.status === "SUCCEEDED"
-                      ? "fill-green-600 dark:fill-green-500"
-                      : "fill-red-600 dark:fill-red-500"
-                  }
-                  opacity={hoveredId && hoveredId !== p.id ? 0.45 : 1}
-                  onMouseEnter={() => setHoveredId(p.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                >
-                  <title>{`${p.customerName} · ${formatCurrency(p.amount)} · ${p.status === "SUCCEEDED" ? "Succeeded" : "Declined"} · ${p.label}`}</title>
-                </rect>
+                <g key={p.id}>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={BAR_WIDTH}
+                    height={barHeight}
+                    rx={4}
+                    className="fill-green-600 dark:fill-green-500"
+                    opacity={hoveredId && hoveredId !== p.id ? 0.45 : 1}
+                    onMouseEnter={() => setHoveredId(p.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                  >
+                    <title>{`${p.customerName} · ${formatCurrency(p.amount)} · ${p.fullLabel}`}</title>
+                  </rect>
+                  <text
+                    x={labelX}
+                    y={CHART_HEIGHT + 14}
+                    textAnchor="end"
+                    transform={`rotate(-45 ${labelX} ${CHART_HEIGHT + 14})`}
+                    className="fill-zinc-500 text-[10px]"
+                  >
+                    {p.dateLabel}
+                  </text>
+                </g>
               );
             })}
           </svg>

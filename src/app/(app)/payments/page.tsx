@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/money";
-import { formatDateTime } from "@/lib/datetime";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { Badge } from "@/components/badge";
 import { PaymentsBarChart } from "@/components/payments-bar-chart";
 
@@ -13,11 +13,13 @@ export default async function PaymentsPage() {
     orderBy: { paidAt: "asc" },
   });
 
-  const chartPayments = payments.map((p) => ({
+  const succeededPayments = payments.filter((p) => p.status === "SUCCEEDED");
+
+  const chartPayments = succeededPayments.map((p) => ({
     id: p.id,
     amount: p.amount.toNumber(),
-    status: p.status,
-    label: formatDateTime(p.paidAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+    dateLabel: formatDate(p.paidAt, { month: "numeric", day: "numeric" }),
+    fullLabel: formatDateTime(p.paidAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
     customerName: `${p.invoice.customer.firstName} ${p.invoice.customer.lastName}`,
   }));
 
@@ -31,8 +33,8 @@ export default async function PaymentsPage() {
       </div>
 
       <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        {payments.length === 0 ? (
-          <p className="py-10 text-center text-sm text-zinc-500">No payments recorded yet.</p>
+        {succeededPayments.length === 0 ? (
+          <p className="py-10 text-center text-sm text-zinc-500">No succeeded payments recorded yet.</p>
         ) : (
           <PaymentsBarChart payments={chartPayments} />
         )}
