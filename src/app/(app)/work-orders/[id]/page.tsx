@@ -24,6 +24,12 @@ const STATUSES = [
   "CANCELLED",
 ] as const;
 
+const ARRIVAL_LABELS: Record<string, string> = {
+  WAITING: "Waiting",
+  DROP_OFF: "Drop-off",
+  TOWED_IN: "Towed in",
+};
+
 const ERROR_MESSAGES: Record<string, string> = {
   invoiced:
     "Line items are locked because an invoice has already been generated for this work order.",
@@ -43,6 +49,8 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
         invoice: true,
         assignedTo: true,
         category: true,
+        laborRate: true,
+        marketingSource: true,
       },
     }),
     prisma.employee.findMany({
@@ -85,9 +93,22 @@ export default async function WorkOrderDetailPage({ params, searchParams }: Page
         <div className="min-w-0 flex-1 space-y-8">
           <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
             <p className="text-xs uppercase text-zinc-500">{categoryLabel}</p>
-            <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{workOrder.description}</p>
+            <p className="mt-1 whitespace-pre-line text-sm text-zinc-700 dark:text-zinc-300">
+              {workOrder.description}
+            </p>
             {workOrder.odometer && (
               <p className="mt-1 text-xs text-zinc-500">Odometer: {workOrder.odometer} mi</p>
+            )}
+            {(workOrder.arrivalType || workOrder.laborRate || workOrder.marketingSource) && (
+              <p className="mt-2 text-xs text-zinc-500">
+                {[
+                  workOrder.arrivalType && ARRIVAL_LABELS[workOrder.arrivalType],
+                  workOrder.laborRate && `Labor rate: ${workOrder.laborRate.name}`,
+                  workOrder.marketingSource && `Source: ${workOrder.marketingSource.name}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             )}
           </section>
 

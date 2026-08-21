@@ -5,35 +5,103 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getRoSettings } from "@/lib/ro-settings";
+import { NEW_VEHICLE_VALUE } from "@/lib/vehicle";
 
-const createSchema = z.object({
-  customerId: z.string().min(1),
-  vehicleId: z.string().min(1),
-  categoryId: z.string().optional(),
-  description: z.string().min(1, "Description is required"),
-  odometer: z.coerce.number().int().min(0).optional(),
+const customerForWorkOrderSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
 });
 
+export async function createCustomerForWorkOrder(formData: FormData) {
+  const data = customerForWorkOrderSchema.parse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
+    phone: formData.get("phone") || undefined,
+    email: formData.get("email") || "",
+  });
+
+  const customer = await prisma.customer.create({
+    data: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone || null,
+      email: data.email || null,
+    },
+  });
+
+  revalidatePath("/customers");
+  redirect(`/work-orders/new?customerId=${customer.id}`);
+}
+
+const createSchema = z
+  .object({
+    customerId: z.string().min(1),
+    vehicleId: z.string().min(1),
+    vehicleYear: z.coerce.number().int().min(1900).max(2100).optional(),
+    vehicleMake: z.string().min(1).optional(),
+    vehicleModel: z.string().min(1).optional(),
+    vehicleVin: z.string().optional(),
+    categoryId: z.string().optional(),
+    odometer: z.coerce.number().int().min(0).optional(),
+    arrivalType: z.enum(["WAITING", "DROP_OFF", "TOWED_IN"]).optional(),
+    laborRateId: z.string().optional(),
+    marketingSourceId: z.string().optional(),
+  })
+  .refine(
+    (data) => data.vehicleId !== NEW_VEHICLE_VALUE || (data.vehicleYear && data.vehicleMake && data.vehicleModel),
+    { message: "Year, make, and model are required for a new vehicle", path: ["vehicleMake"] }
+  );
+
 export async function createWorkOrder(formData: FormData) {
+  const concerns = formData
+    .getAll("concerns")
+    .map((value) => value.toString().trim())
+    .filter(Boolean);
+  const description = z.string().min(1, "At least one concern is required").parse(concerns.join("\n"));
+
   const data = createSchema.parse({
     customerId: formData.get("customerId"),
     vehicleId: formData.get("vehicleId"),
+    vehicleYear: formData.get("vehicleYear") || undefined,
+    vehicleMake: formData.get("vehicleMake") || undefined,
+    vehicleModel: formData.get("vehicleModel") || undefined,
+    vehicleVin: formData.get("vehicleVin") || undefined,
     categoryId: formData.get("categoryId") || undefined,
-    description: formData.get("description"),
     odometer: formData.get("odometer") || undefined,
+    arrivalType: formData.get("arrivalType") || undefined,
+    laborRateId: formData.get("laborRateId") || undefined,
+    marketingSourceId: formData.get("marketingSourceId") || undefined,
   });
+
+  const isNewVehicle = data.vehicleId === NEW_VEHICLE_VALUE;
 
   const workOrder = await prisma.workOrder.create({
     data: {
-      customerId: data.customerId,
-      vehicleId: data.vehicleId,
-      categoryId: data.categoryId ?? null,
-      description: data.description,
+      customer: { connect: { id: data.customerId } },
+      vehicle: isNewVehicle
+        ? {
+            create: {
+              year: data.vehicleYear!,
+              make: data.vehicleMake!,
+              model: data.vehicleModel!,
+              vin: data.vehicleVin || null,
+              customer: { connect: { id: data.customerId } },
+            },
+          }
+        : { connect: { id: data.vehicleId } },
+      category: data.categoryId ? { connect: { id: data.categoryId } } : undefined,
+      description,
       odometer: data.odometer ?? null,
+      arrivalType: data.arrivalType,
+      laborRate: data.laborRateId ? { connect: { id: data.laborRateId } } : undefined,
+      marketingSource: data.marketingSourceId ? { connect: { id: data.marketingSourceId } } : undefined,
     },
   });
 
   revalidatePath("/work-orders");
+  revalidatePath("/job-board");
   redirect(`/work-orders/${workOrder.id}`);
 }
 

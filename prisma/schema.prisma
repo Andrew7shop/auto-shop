@@ -84,6 +84,26 @@ enum EmployeeRole {
   OTHER
 }
 
+enum ArrivalType {
+  WAITING
+  DROP_OFF
+  TOWED_IN
+}
+
+model MarketingSource {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  workOrders WorkOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 model Employee {
   id        String       @id @default(cuid())
   firstName String
@@ -117,6 +137,14 @@ model WorkOrder {
   assignedToId String?
   assignedTo   Employee? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
 
+  arrivalType ArrivalType?
+
+  laborRateId String?
+  laborRate   LaborRate? @relation(fields: [laborRateId], references: [id], onDelete: SetNull)
+
+  marketingSourceId String?
+  marketingSource   MarketingSource? @relation(fields: [marketingSourceId], references: [id], onDelete: SetNull)
+
   lineItems   LineItem[]
   invoice     Invoice?
   appointment Appointment?
@@ -129,6 +157,8 @@ model WorkOrder {
   @@index([customerId])
   @@index([vehicleId])
   @@index([status])
+  @@index([laborRateId])
+  @@index([marketingSourceId])
   @@index([assignedToId])
   @@index([categoryId])
 }
@@ -439,6 +469,8 @@ model LaborRate {
   name        String
   ratePerHour Decimal @db.Decimal(10, 2)
   active      Boolean @default(true)
+
+  workOrders WorkOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
