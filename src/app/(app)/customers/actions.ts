@@ -4,33 +4,47 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCustomerSettings, buildCustomerProfileSchema } from "@/lib/customer-settings";
 
-const customerSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  notes: z.string().optional(),
-});
+async function buildCustomerSchema() {
+  const settings = await getCustomerSettings();
+  return buildCustomerProfileSchema(settings).extend({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    notes: z.string().optional(),
+  });
+}
 
-export async function createCustomer(formData: FormData) {
-  const data = customerSchema.parse({
+function readCustomerFormData(formData: FormData) {
+  return {
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
+    customerType: formData.get("customerType") || undefined,
+    businessName: formData.get("businessName") || undefined,
     email: formData.get("email") || "",
     phone: formData.get("phone") || undefined,
     address: formData.get("address") || undefined,
+    sourceId: formData.get("sourceId") || undefined,
+    birthday: formData.get("birthday") || undefined,
     notes: formData.get("notes") || undefined,
-  });
+  };
+}
+
+export async function createCustomer(formData: FormData) {
+  const customerSchema = await buildCustomerSchema();
+  const data = customerSchema.parse(readCustomerFormData(formData));
 
   const customer = await prisma.customer.create({
     data: {
       firstName: data.firstName,
       lastName: data.lastName,
+      customerType: data.customerType,
+      businessName: data.businessName || null,
       email: data.email || null,
       phone: data.phone || null,
       address: data.address || null,
+      sourceId: data.sourceId || null,
+      birthday: data.birthday ?? null,
       notes: data.notes || null,
     },
   });
@@ -39,36 +53,34 @@ export async function createCustomer(formData: FormData) {
   redirect(`/customers/${customer.id}`);
 }
 
-const updateCustomerSchema = customerSchema.extend({
+const updateCustomerIdSchema = z.object({
   id: z.string().min(1),
 });
 
 export async function updateCustomer(formData: FormData) {
-  const data = updateCustomerSchema.parse({
-    id: formData.get("id"),
-    firstName: formData.get("firstName"),
-    lastName: formData.get("lastName"),
-    email: formData.get("email") || "",
-    phone: formData.get("phone") || undefined,
-    address: formData.get("address") || undefined,
-    notes: formData.get("notes") || undefined,
-  });
+  const { id } = updateCustomerIdSchema.parse({ id: formData.get("id") });
+  const customerSchema = await buildCustomerSchema();
+  const data = customerSchema.parse(readCustomerFormData(formData));
 
   await prisma.customer.update({
-    where: { id: data.id },
+    where: { id },
     data: {
       firstName: data.firstName,
       lastName: data.lastName,
+      customerType: data.customerType,
+      businessName: data.businessName || null,
       email: data.email || null,
       phone: data.phone || null,
       address: data.address || null,
+      sourceId: data.sourceId || null,
+      birthday: data.birthday ?? null,
       notes: data.notes || null,
     },
   });
 
   revalidatePath("/customers");
-  revalidatePath(`/customers/${data.id}`);
-  redirect(`/customers/${data.id}`);
+  revalidatePath(`/customers/${id}`);
+  redirect(`/customers/${id}`);
 }
 
 export async function deleteCustomer(formData: FormData) {

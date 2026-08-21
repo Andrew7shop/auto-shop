@@ -7,6 +7,8 @@ import { getJobCategories } from "@/lib/job-categories";
 import { getMarketingSources } from "@/lib/marketing-sources";
 import { VehicleSelectFields } from "@/components/vehicle-select-fields";
 import { WorkOrderDetailFields } from "@/components/work-order-detail-fields";
+import { CustomerProfileFields } from "@/components/customer-profile-fields";
+import { getCustomerSettings } from "@/lib/customer-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +17,11 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
   const selectedCustomerId = typeof customerId === "string" ? customerId : undefined;
   const searchTerm = typeof q === "string" ? q.trim() : "";
 
-  const [jobCategories, laborRates, marketingSources] = await Promise.all([
+  const [jobCategories, laborRates, marketingSources, customerSettings] = await Promise.all([
     getJobCategories({ activeOnly: true }),
     prisma.laborRate.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     getMarketingSources({ activeOnly: true }),
+    getCustomerSettings(),
   ]);
 
   if (!selectedCustomerId) {
@@ -79,13 +82,14 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
         <div className="space-y-4 border-t border-zinc-200 pt-6 dark:border-zinc-800">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Or add a new customer</h2>
           <form action={createCustomerAndWorkOrder} className="space-y-6">
+            <CustomerProfileFields settings={customerSettings} sources={marketingSources} />
             <div className="grid grid-cols-2 gap-4">
               <Field name="firstName" label="First name" required />
               <Field name="lastName" label="Last name" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Field name="phone" label="Phone" type="tel" />
-              <Field name="email" label="Email" type="email" />
+              <Field name="phone" label="Phone" type="tel" required={customerSettings.requirePhone} />
+              <Field name="email" label="Email" type="email" required={customerSettings.requireEmail} />
             </div>
 
             <div className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">

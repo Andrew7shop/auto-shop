@@ -26,6 +26,7 @@ export default async function CustomerDetailPage({
       vehicles: { orderBy: { createdAt: "desc" } },
       workOrders: { include: { vehicle: true }, orderBy: { openedAt: "desc" } },
       invoices: { orderBy: { issuedAt: "desc" } },
+      source: true,
     },
   });
 
@@ -45,11 +46,29 @@ export default async function CustomerDetailPage({
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             {customer.firstName} {customer.lastName}
+            {customer.customerType === "BUSINESS" && (
+              <span className="ml-2 text-sm font-normal text-zinc-500">
+                {customer.businessName || "Business"}
+              </span>
+            )}
           </h1>
           <p className="text-sm text-zinc-500">
             {[customer.phone, customer.email, customer.address].filter(Boolean).join(" · ") ||
               "No contact info on file"}
           </p>
+          {(customer.source || customer.birthday) && (
+            <p className="text-xs text-zinc-500">
+              {[
+                customer.source && `Source: ${customer.source.name}`,
+                // Birthday is a plain calendar date (no time-of-day), so format in UTC rather than
+                // shop-local time to avoid shifting it a day off from what was entered.
+                customer.birthday &&
+                  `Birthday: ${customer.birthday.toLocaleDateString("en-US", { timeZone: "UTC" })}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Link href={`/customers/${customer.id}/edit`} className={secondaryButtonClass}>

@@ -6,22 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getRoSettings } from "@/lib/ro-settings";
 import { NEW_VEHICLE_VALUE } from "@/lib/vehicle";
-
-const customerAndWorkOrderSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  vehicleYear: z.coerce.number().int().min(1900).max(2100),
-  vehicleMake: z.string().min(1, "Make is required"),
-  vehicleModel: z.string().min(1, "Model is required"),
-  vehicleVin: z.string().optional(),
-  categoryId: z.string().optional(),
-  odometer: z.coerce.number().int().min(0).optional(),
-  arrivalType: z.enum(["WAITING", "DROP_OFF", "TOWED_IN"]).optional(),
-  laborRateId: z.string().optional(),
-  marketingSourceId: z.string().optional(),
-});
+import { getCustomerSettings, buildCustomerProfileSchema } from "@/lib/customer-settings";
 
 export async function createCustomerAndWorkOrder(formData: FormData) {
   const concerns = formData
@@ -30,11 +15,31 @@ export async function createCustomerAndWorkOrder(formData: FormData) {
     .filter(Boolean);
   const description = z.string().min(1, "At least one concern is required").parse(concerns.join("\n"));
 
+  const customerSettings = await getCustomerSettings();
+  const customerAndWorkOrderSchema = buildCustomerProfileSchema(customerSettings).extend({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    vehicleYear: z.coerce.number().int().min(1900).max(2100),
+    vehicleMake: z.string().min(1, "Make is required"),
+    vehicleModel: z.string().min(1, "Model is required"),
+    vehicleVin: z.string().optional(),
+    categoryId: z.string().optional(),
+    odometer: z.coerce.number().int().min(0).optional(),
+    arrivalType: z.enum(["WAITING", "DROP_OFF", "TOWED_IN"]).optional(),
+    laborRateId: z.string().optional(),
+    marketingSourceId: z.string().optional(),
+  });
+
   const data = customerAndWorkOrderSchema.parse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
+    customerType: formData.get("customerType") || undefined,
+    businessName: formData.get("businessName") || undefined,
     phone: formData.get("phone") || undefined,
     email: formData.get("email") || "",
+    address: formData.get("address") || undefined,
+    sourceId: formData.get("sourceId") || undefined,
+    birthday: formData.get("birthday") || undefined,
     vehicleYear: formData.get("vehicleYear"),
     vehicleMake: formData.get("vehicleMake"),
     vehicleModel: formData.get("vehicleModel"),
@@ -51,8 +56,13 @@ export async function createCustomerAndWorkOrder(formData: FormData) {
       data: {
         firstName: data.firstName,
         lastName: data.lastName,
+        customerType: data.customerType,
+        businessName: data.businessName || null,
         phone: data.phone || null,
         email: data.email || null,
+        address: data.address || null,
+        sourceId: data.sourceId || null,
+        birthday: data.birthday ?? null,
       },
     });
 

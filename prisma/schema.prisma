@@ -10,16 +10,27 @@ datasource db {
   provider = "postgresql"
 }
 
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
 model Customer {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  address   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String       @id @default(cuid())
+  customerType CustomerType @default(INDIVIDUAL)
+  firstName    String
+  lastName     String
+  businessName String?
+  email        String?
+  phone        String?
+  address      String?
+  birthday     DateTime?    @db.Date
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  sourceId String?
+  source   MarketingSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
   vehicles     Vehicle[]
   workOrders   WorkOrder[]
@@ -27,6 +38,7 @@ model Customer {
   invoices     Invoice[]
 
   @@index([lastName, firstName])
+  @@index([sourceId])
 }
 
 model Vehicle {
@@ -97,6 +109,7 @@ model MarketingSource {
   sortOrder Int     @default(0)
 
   workOrders WorkOrder[]
+  customers  Customer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -529,6 +542,19 @@ model LaborMarkupTier {
 model EstimateInvoiceSettings {
   id              String @id @default("estimates-invoices")
   fieldVisibility Json   @default("{}")
+
+  updatedAt DateTime @updatedAt
+}
+
+model CustomerSettings {
+  id                  String  @id @default("customers")
+  requireCustomerType Boolean @default(false)
+  requireBusinessName Boolean @default(false)
+  requireAddress      Boolean @default(false)
+  requirePhone        Boolean @default(false)
+  requireEmail        Boolean @default(false)
+  requireSource       Boolean @default(false)
+  requireBirthday     Boolean @default(false)
 
   updatedAt DateTime @updatedAt
 }
