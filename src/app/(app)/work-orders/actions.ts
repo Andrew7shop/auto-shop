@@ -7,32 +7,81 @@ import { prisma } from "@/lib/prisma";
 import { getRoSettings } from "@/lib/ro-settings";
 import { NEW_VEHICLE_VALUE } from "@/lib/vehicle";
 
-const customerForWorkOrderSchema = z.object({
+const customerAndWorkOrderSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  vehicleYear: z.coerce.number().int().min(1900).max(2100),
+  vehicleMake: z.string().min(1, "Make is required"),
+  vehicleModel: z.string().min(1, "Model is required"),
+  vehicleVin: z.string().optional(),
+  categoryId: z.string().optional(),
+  odometer: z.coerce.number().int().min(0).optional(),
+  arrivalType: z.enum(["WAITING", "DROP_OFF", "TOWED_IN"]).optional(),
+  laborRateId: z.string().optional(),
+  marketingSourceId: z.string().optional(),
 });
 
-export async function createCustomerForWorkOrder(formData: FormData) {
-  const data = customerForWorkOrderSchema.parse({
+export async function createCustomerAndWorkOrder(formData: FormData) {
+  const concerns = formData
+    .getAll("concerns")
+    .map((value) => value.toString().trim())
+    .filter(Boolean);
+  const description = z.string().min(1, "At least one concern is required").parse(concerns.join("\n"));
+
+  const data = customerAndWorkOrderSchema.parse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
     phone: formData.get("phone") || undefined,
     email: formData.get("email") || "",
+    vehicleYear: formData.get("vehicleYear"),
+    vehicleMake: formData.get("vehicleMake"),
+    vehicleModel: formData.get("vehicleModel"),
+    vehicleVin: formData.get("vehicleVin") || undefined,
+    categoryId: formData.get("categoryId") || undefined,
+    odometer: formData.get("odometer") || undefined,
+    arrivalType: formData.get("arrivalType") || undefined,
+    laborRateId: formData.get("laborRateId") || undefined,
+    marketingSourceId: formData.get("marketingSourceId") || undefined,
   });
 
-  const customer = await prisma.customer.create({
-    data: {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phone: data.phone || null,
-      email: data.email || null,
-    },
+  const workOrder = await prisma.$transaction(async (tx) => {
+    const customer = await tx.customer.create({
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone || null,
+        email: data.email || null,
+      },
+    });
+
+    return tx.workOrder.create({
+      data: {
+        customer: { connect: { id: customer.id } },
+        vehicle: {
+          create: {
+            year: data.vehicleYear,
+            make: data.vehicleMake,
+            model: data.vehicleModel,
+            vin: data.vehicleVin || null,
+            customer: { connect: { id: customer.id } },
+          },
+        },
+        category: data.categoryId ? { connect: { id: data.categoryId } } : undefined,
+        description,
+        odometer: data.odometer ?? null,
+        arrivalType: data.arrivalType,
+        laborRate: data.laborRateId ? { connect: { id: data.laborRateId } } : undefined,
+        marketingSource: data.marketingSourceId ? { connect: { id: data.marketingSourceId } } : undefined,
+      },
+    });
   });
 
   revalidatePath("/customers");
-  redirect(`/work-orders/new?customerId=${customer.id}`);
+  revalidatePath("/work-orders");
+  revalidatePath("/job-board");
+  redirect(`/work-orders/${workOrder.id}`);
 }
 
 const createSchema = z

@@ -1,25 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { createWorkOrder, createCustomerForWorkOrder } from "../actions";
+import { createWorkOrder, createCustomerAndWorkOrder } from "../actions";
 import { Field, inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { getJobCategories } from "@/lib/job-categories";
 import { getMarketingSources } from "@/lib/marketing-sources";
 import { VehicleSelectFields } from "@/components/vehicle-select-fields";
-import { ConcernLinesFields } from "@/components/concern-lines-fields";
+import { WorkOrderDetailFields } from "@/components/work-order-detail-fields";
 
 export const dynamic = "force-dynamic";
-
-const ARRIVAL_TYPES = [
-  { value: "WAITING", label: "Waiting" },
-  { value: "DROP_OFF", label: "Drop-off" },
-  { value: "TOWED_IN", label: "Towed in" },
-];
 
 export default async function NewWorkOrderPage({ searchParams }: PageProps<"/work-orders/new">) {
   const { customerId, q } = await searchParams;
   const selectedCustomerId = typeof customerId === "string" ? customerId : undefined;
   const searchTerm = typeof q === "string" ? q.trim() : "";
+
+  const [jobCategories, laborRates, marketingSources] = await Promise.all([
+    getJobCategories({ activeOnly: true }),
+    prisma.laborRate.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    getMarketingSources({ activeOnly: true }),
+  ]);
 
   if (!selectedCustomerId) {
     const customers = searchTerm
@@ -76,9 +76,9 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
           )}
         </div>
 
-        <div className="space-y-3 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+        <div className="space-y-4 border-t border-zinc-200 pt-6 dark:border-zinc-800">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Or add a new customer</h2>
-          <form action={createCustomerForWorkOrder} className="space-y-4">
+          <form action={createCustomerAndWorkOrder} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <Field name="firstName" label="First name" required />
               <Field name="lastName" label="Last name" required />
@@ -87,8 +87,44 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
               <Field name="phone" label="Phone" type="tel" />
               <Field name="email" label="Email" type="email" />
             </div>
+
+            <div className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+              <div>
+                <label htmlFor="vehicleYear" className={labelClass}>
+                  Vehicle year <span className="text-red-500">*</span>
+                </label>
+                <input id="vehicleYear" name="vehicleYear" type="number" required className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="vehicleMake" className={labelClass}>
+                  Make <span className="text-red-500">*</span>
+                </label>
+                <input id="vehicleMake" name="vehicleMake" required className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="vehicleModel" className={labelClass}>
+                  Model <span className="text-red-500">*</span>
+                </label>
+                <input id="vehicleModel" name="vehicleModel" required className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="vehicleVin" className={labelClass}>
+                  VIN
+                </label>
+                <input id="vehicleVin" name="vehicleVin" className={inputClass} />
+              </div>
+            </div>
+
+            <Field name="odometer" label="Odometer in" type="number" />
+
+            <WorkOrderDetailFields
+              jobCategories={jobCategories}
+              laborRates={laborRates}
+              marketingSources={marketingSources}
+            />
+
             <button type="submit" className={primaryButtonClass}>
-              Create customer &amp; continue
+              Create customer &amp; work order
             </button>
           </form>
         </div>
@@ -96,12 +132,7 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
     );
   }
 
-  const [customer, jobCategories, laborRates, marketingSources] = await Promise.all([
-    prisma.customer.findUnique({ where: { id: selectedCustomerId }, include: { vehicles: true } }),
-    getJobCategories({ activeOnly: true }),
-    prisma.laborRate.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    getMarketingSources({ activeOnly: true }),
-  ]);
+  const customer = await prisma.customer.findUnique({ where: { id: selectedCustomerId }, include: { vehicles: true } });
 
   if (!customer) notFound();
 
@@ -126,72 +157,11 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
 
         <Field name="odometer" label="Odometer in" type="number" />
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="arrivalType" className={labelClass}>
-              Arrival
-            </label>
-            <select id="arrivalType" name="arrivalType" className={inputClass} defaultValue="">
-              <option value="" disabled>
-                Select arrival type
-              </option>
-              {ARRIVAL_TYPES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="laborRateId" className={labelClass}>
-              Labor rate
-            </label>
-            <select id="laborRateId" name="laborRateId" className={inputClass} defaultValue="">
-              <option value="">No labor rate</option>
-              {laborRates.map((rate) => (
-                <option key={rate.id} value={rate.id}>
-                  {rate.name} (${rate.ratePerHour.toString()}/hr)
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="categoryId" className={labelClass}>
-            Job category
-          </label>
-          <select id="categoryId" name="categoryId" className={inputClass} defaultValue="">
-            <option value="">No category</option>
-            {jobCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.code} — {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <h2 className={labelClass}>
-            Customer states <span className="text-red-500">*</span>
-          </h2>
-          <p className="mb-2 text-sm text-zinc-500">Problems the customer describes with the vehicle.</p>
-          <ConcernLinesFields />
-        </div>
-
-        <div>
-          <label htmlFor="marketingSourceId" className={labelClass}>
-            Marketing source
-          </label>
-          <select id="marketingSourceId" name="marketingSourceId" className={inputClass} defaultValue="">
-            <option value="">Not specified</option>
-            {marketingSources.map((source) => (
-              <option key={source.id} value={source.id}>
-                {source.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <WorkOrderDetailFields
+          jobCategories={jobCategories}
+          laborRates={laborRates}
+          marketingSources={marketingSources}
+        />
 
         <button type="submit" className={primaryButtonClass}>
           Create work order
