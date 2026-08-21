@@ -493,3 +493,10 @@ model LaborMarkupTier {
 
   @@index([active, minHours])
 }
+
+model EstimateInvoiceSettings {
+  id              String @id @default("estimates-invoices")
+  fieldVisibility Json   @default("{}")
+
+  updatedAt DateTime @updatedAt
+}
