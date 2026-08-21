@@ -93,3 +93,65 @@ export async function updateMarkupTier(formData: FormData) {
   revalidatePath("/shop-settings/markups");
   redirect("/shop-settings/markups");
 }
+
+const laborTierSchema = z
+  .object({
+    minHours: z.coerce.number().min(0),
+    maxHours: z.coerce.number().min(0).optional(),
+    multiplier: z.coerce.number().positive(),
+  })
+  .refine((data) => data.maxHours === undefined || data.maxHours > data.minHours, {
+    message: "Max hours must be greater than min hours",
+    path: ["maxHours"],
+  });
+
+export async function createLaborMarkupTier(formData: FormData) {
+  const data = laborTierSchema.parse({
+    minHours: formData.get("minHours"),
+    maxHours: emptyToUndefined(formData.get("maxHours")),
+    multiplier: formData.get("multiplier"),
+  });
+
+  await prisma.laborMarkupTier.create({
+    data: { minHours: data.minHours, maxHours: data.maxHours ?? null, multiplier: data.multiplier },
+  });
+
+  revalidatePath("/shop-settings/markups");
+  redirect("/shop-settings/markups");
+}
+
+const updateLaborTierSchema = z
+  .object({
+    id: z.string().min(1),
+    minHours: z.coerce.number().min(0),
+    maxHours: z.coerce.number().min(0).optional(),
+    multiplier: z.coerce.number().positive(),
+    active: z.coerce.boolean(),
+  })
+  .refine((data) => data.maxHours === undefined || data.maxHours > data.minHours, {
+    message: "Max hours must be greater than min hours",
+    path: ["maxHours"],
+  });
+
+export async function updateLaborMarkupTier(formData: FormData) {
+  const data = updateLaborTierSchema.parse({
+    id: formData.get("id"),
+    minHours: formData.get("minHours"),
+    maxHours: emptyToUndefined(formData.get("maxHours")),
+    multiplier: formData.get("multiplier"),
+    active: formData.get("active") === "on",
+  });
+
+  await prisma.laborMarkupTier.update({
+    where: { id: data.id },
+    data: {
+      minHours: data.minHours,
+      maxHours: data.maxHours ?? null,
+      multiplier: data.multiplier,
+      active: data.active,
+    },
+  });
+
+  revalidatePath("/shop-settings/markups");
+  redirect("/shop-settings/markups");
+}

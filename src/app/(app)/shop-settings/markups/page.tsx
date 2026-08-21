@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/money";
-import { getMarkupSettings, DEFAULT_MARKUP_SETTINGS, gpPercentForMultiplier } from "@/lib/markups";
+import {
+  getMarkupSettings,
+  DEFAULT_MARKUP_SETTINGS,
+  gpPercentForMultiplier,
+  markupPercentForMultiplier,
+} from "@/lib/markups";
 import { updateMarkupApplication } from "./actions";
 import { primaryButtonClass } from "@/components/form";
 
@@ -14,9 +19,10 @@ const APPLIES_TO_OPTIONS = [
 ] as const;
 
 export default async function MarkupsSettingsPage() {
-  const [settings, tiers] = await Promise.all([
+  const [settings, tiers, laborTiers] = await Promise.all([
     getMarkupSettings(),
     prisma.markupTier.findMany({ orderBy: [{ active: "desc" }, { minCost: "asc" }] }),
+    prisma.laborMarkupTier.findMany({ orderBy: [{ active: "desc" }, { minHours: "asc" }] }),
   ]);
   const application = {
     appliesToParts: settings?.appliesToParts ?? DEFAULT_MARKUP_SETTINGS.appliesToParts,
@@ -97,6 +103,63 @@ export default async function MarkupsSettingsPage() {
                   </td>
                   <td className="px-4 py-2 text-right text-zinc-900 dark:text-zinc-50">
                     {gpPercentForMultiplier(tier.multiplier.toNumber()).toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Labor Markup</h3>
+          <p className="text-sm text-zinc-500">
+            Job-hour ranges. Each range multiplies the labor rate for jobs of that length and shows the markup over
+            the base rate.
+          </p>
+        </div>
+        <div className="flex justify-end">
+          <Link
+            href="/shop-settings/markups/labor/new"
+            className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            New labor markup range
+          </Link>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <table className="w-full text-sm">
+            <thead className="bg-zinc-50 text-left text-xs uppercase text-zinc-500 dark:bg-zinc-900">
+              <tr>
+                <th className="px-4 py-2">Hours range</th>
+                <th className="px-4 py-2 text-right">Multiplier</th>
+                <th className="px-4 py-2 text-right">Markup</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
+              {laborTiers.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-zinc-500">
+                    No labor markup ranges yet.
+                  </td>
+                </tr>
+              )}
+              {laborTiers.map((tier) => (
+                <tr key={tier.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                  <td className="px-4 py-2">
+                    <Link href={`/shop-settings/markups/labor/${tier.id}/edit`} className="hover:underline">
+                      <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                        {tier.minHours.toString()} – {tier.maxHours ? tier.maxHours.toString() : "and up"} hrs
+                      </span>
+                      {!tier.active && <span className="ml-2 text-xs font-normal text-zinc-500">(Inactive)</span>}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2 text-right text-zinc-900 dark:text-zinc-50">
+                    {tier.multiplier.toString()}x
+                  </td>
+                  <td className="px-4 py-2 text-right text-zinc-900 dark:text-zinc-50">
+                    {markupPercentForMultiplier(tier.multiplier.toNumber()).toFixed(1)}%
                   </td>
                 </tr>
               ))}

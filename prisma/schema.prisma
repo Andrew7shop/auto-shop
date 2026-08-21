@@ -480,3 +480,16 @@ model MarkupTier {
 
   @@index([active, minCost])
 }
+
+model LaborMarkupTier {
+  id         String   @id @default(cuid())
+  minHours   Decimal  @db.Decimal(6, 2)
+  maxHours   Decimal? @db.Decimal(6, 2)
+  multiplier Decimal  @db.Decimal(6, 3)
+  active     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, minHours])
+}
