@@ -558,3 +558,23 @@ model CustomerSettings {
 
   updatedAt DateTime @updatedAt
 }
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+}
+
+model Integration {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String?
+  status      IntegrationStatus @default(DISCONNECTED)
+  apiKey      String?
+  accountId   String?
+  connectedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
