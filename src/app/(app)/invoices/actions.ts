@@ -9,6 +9,7 @@ const paymentSchema = z.object({
   invoiceId: z.string().min(1),
   amount: z.coerce.number().positive(),
   method: z.enum(["CASH", "CARD", "CHECK", "BANK_TRANSFER", "OTHER"]),
+  status: z.enum(["SUCCEEDED", "DECLINED"]),
   reference: z.string().optional(),
 });
 
@@ -17,6 +18,7 @@ export async function recordPayment(formData: FormData) {
     invoiceId: formData.get("invoiceId"),
     amount: formData.get("amount"),
     method: formData.get("method"),
+    status: formData.get("status") || "SUCCEEDED",
     reference: formData.get("reference") || undefined,
   });
 
@@ -30,13 +32,14 @@ export async function recordPayment(formData: FormData) {
       invoiceId: data.invoiceId,
       amount: data.amount,
       method: data.method,
+      status: data.status,
       reference: data.reference || null,
     },
   });
 
   const { total, paid } = computeInvoiceTotals(invoice.workOrder.lineItems, invoice, [
     ...invoice.payments,
-    { amount: data.amount },
+    { amount: data.amount, status: data.status },
   ]);
 
   const status = paid <= 0 ? "UNPAID" : paid >= total ? "PAID" : "PARTIALLY_PAID";

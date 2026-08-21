@@ -214,6 +214,7 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
                       {payment.reference && ` · Ref: ${payment.reference}`}
                     </p>
                   </div>
+                  <Badge status={payment.status} />
                 </div>
               ))}
             </div>
@@ -265,6 +266,15 @@ export default async function InvoiceDetailPage({ params }: PageProps<"/invoices
                   Reference
                 </label>
                 <input id="reference" name="reference" className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="status" className={labelClass}>
+                  Status
+                </label>
+                <select id="status" name="status" className={inputClass} defaultValue="SUCCEEDED">
+                  <option value="SUCCEEDED">Succeeded</option>
+                  <option value="DECLINED">Declined</option>
+                </select>
               </div>
               <button type="submit" className={`${primaryButtonClass} w-full`}>
                 Record payment

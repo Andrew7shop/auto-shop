@@ -248,10 +248,16 @@ enum PaymentMethod {
   OTHER
 }
 
+enum PaymentStatus {
+  SUCCEEDED
+  DECLINED
+}
+
 model Payment {
   id        String        @id @default(cuid())
   amount    Decimal       @db.Decimal(10, 2)
   method    PaymentMethod
+  status    PaymentStatus @default(SUCCEEDED)
   reference String?
   paidAt    DateTime      @default(now())
 
@@ -261,6 +267,7 @@ model Payment {
   createdAt DateTime @default(now())
 
   @@index([invoiceId])
+  @@index([status])
 }
 
 enum AppointmentStatus {

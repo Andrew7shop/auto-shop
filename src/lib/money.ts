@@ -33,7 +33,7 @@ type Charges = {
 export function computeInvoiceTotals(
   lineItems: { quantity: Moneyish; unitPrice: Moneyish }[],
   charges: Charges,
-  payments: { amount: Moneyish }[]
+  payments: { amount: Moneyish; status?: "SUCCEEDED" | "DECLINED" }[]
 ) {
   const subtotal = sumLineItems(lineItems);
   const discountValue = toNumber(charges.discountValue);
@@ -43,7 +43,10 @@ export function computeInvoiceTotals(
   const tax = discountedSubtotal * toNumber(charges.taxRate);
   const tireFee = toNumber(charges.tireFeeTotal);
   const total = discountedSubtotal + tax + tireFee;
-  const paid = payments.reduce((sum, p) => sum + toNumber(p.amount), 0);
+  // Declined payments never reduced the balance, so they're excluded from "paid".
+  const paid = payments
+    .filter((p) => p.status !== "DECLINED")
+    .reduce((sum, p) => sum + toNumber(p.amount), 0);
   const balance = Math.round((total - paid) * 100) / 100 || 0;
   return { subtotal, discountAmount, discountedSubtotal, tax, tireFee, total, paid, balance };
 }

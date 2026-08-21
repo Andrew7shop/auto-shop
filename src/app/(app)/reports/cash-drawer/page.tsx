@@ -14,7 +14,7 @@ export default async function CashDrawerPage({ searchParams }: PageProps<"/repor
 
   const [payments, roSettings] = await Promise.all([
     prisma.payment.findMany({
-      where: { method: "CASH", paidAt: { gte: start, lt: end } },
+      where: { method: "CASH", status: "SUCCEEDED", paidAt: { gte: start, lt: end } },
       include: { invoice: { include: { customer: true } } },
       orderBy: { paidAt: "asc" },
     }),
