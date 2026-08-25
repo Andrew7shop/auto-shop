@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { inputClass, labelClass } from "@/components/form";
 import { NEW_VEHICLE_VALUE } from "@/lib/vehicle";
+import { VehicleLookupFields } from "@/components/vehicle-lookup-fields";
 
 export function VehicleSelectFields({
   vehicles,
@@ -40,31 +41,8 @@ export function VehicleSelectFields({
       </div>
 
       {isNew && (
-        <div className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <div>
-            <label htmlFor="vehicleYear" className={labelClass}>
-              Year <span className="text-red-500">*</span>
-            </label>
-            <input id="vehicleYear" name="vehicleYear" type="number" required className={inputClass} />
-          </div>
-          <div>
-            <label htmlFor="vehicleMake" className={labelClass}>
-              Make <span className="text-red-500">*</span>
-            </label>
-            <input id="vehicleMake" name="vehicleMake" required className={inputClass} />
-          </div>
-          <div>
-            <label htmlFor="vehicleModel" className={labelClass}>
-              Model <span className="text-red-500">*</span>
-            </label>
-            <input id="vehicleModel" name="vehicleModel" required className={inputClass} />
-          </div>
-          <div>
-            <label htmlFor="vehicleVin" className={labelClass}>
-              VIN
-            </label>
-            <input id="vehicleVin" name="vehicleVin" className={inputClass} />
-          </div>
+        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+          <VehicleLookupFields namePrefix="vehicle" />
         </div>
       )}
     </div>

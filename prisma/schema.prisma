@@ -50,6 +50,7 @@ model Vehicle {
   licensePlate String?
   color        String?
   mileage      Int?
+  driveType    String?
   notes        String?
 
   customerId String

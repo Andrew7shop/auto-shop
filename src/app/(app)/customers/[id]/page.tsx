@@ -5,6 +5,7 @@ import { Badge } from "@/components/badge";
 import { addVehicle, updateVehicle, deleteCustomer, deleteVehicle } from "../actions";
 import { Field, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { DeleteButton } from "@/components/delete-button";
+import { VehicleLookupFields } from "@/components/vehicle-lookup-fields";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,12 @@ export default async function CustomerDetailPage({
                   {vehicle.year} {vehicle.make} {vehicle.model}
                 </p>
                 <p className="text-xs text-zinc-500">
-                  {[vehicle.licensePlate, vehicle.vin, vehicle.mileage ? `${vehicle.mileage} mi` : null]
+                  {[
+                    vehicle.driveType,
+                    vehicle.licensePlate,
+                    vehicle.vin,
+                    vehicle.mileage ? `${vehicle.mileage} mi` : null,
+                  ]
                     .filter(Boolean)
                     .join(" · ") || "No additional details"}
                 </p>
@@ -112,13 +118,14 @@ export default async function CustomerDetailPage({
                   <Field name="make" label="Make" required defaultValue={vehicle.make} />
                   <Field name="model" label="Model" required defaultValue={vehicle.model} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <Field name="vin" label="VIN" defaultValue={vehicle.vin ?? undefined} />
                   <Field
                     name="licensePlate"
                     label="License plate"
                     defaultValue={vehicle.licensePlate ?? undefined}
                   />
+                  <Field name="driveType" label="Drivetrain" defaultValue={vehicle.driveType ?? undefined} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Field name="color" label="Color" defaultValue={vehicle.color ?? undefined} />
@@ -152,16 +159,9 @@ export default async function CustomerDetailPage({
             </summary>
             <form action={addVehicle} className="mt-3 space-y-3">
               <input type="hidden" name="customerId" value={customer.id} />
+              <VehicleLookupFields />
               <div className="grid grid-cols-3 gap-3">
-                <Field name="year" label="Year" type="number" required />
-                <Field name="make" label="Make" required />
-                <Field name="model" label="Model" required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field name="vin" label="VIN" />
                 <Field name="licensePlate" label="License plate" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
                 <Field name="color" label="Color" />
                 <Field name="mileage" label="Mileage" type="number" />
               </div>

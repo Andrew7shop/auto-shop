@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createWorkOrder, createCustomerAndWorkOrder } from "../actions";
-import { Field, inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
+import { Field, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { getJobCategories } from "@/lib/job-categories";
 import { getMarketingSources } from "@/lib/marketing-sources";
 import { VehicleSelectFields } from "@/components/vehicle-select-fields";
+import { VehicleLookupFields } from "@/components/vehicle-lookup-fields";
 import { WorkOrderDetailFields } from "@/components/work-order-detail-fields";
 import { CustomerProfileFields } from "@/components/customer-profile-fields";
 import { getCustomerSettings } from "@/lib/customer-settings";
@@ -92,31 +93,8 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
               <Field name="email" label="Email" type="email" required={customerSettings.requireEmail} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-              <div>
-                <label htmlFor="vehicleYear" className={labelClass}>
-                  Vehicle year <span className="text-red-500">*</span>
-                </label>
-                <input id="vehicleYear" name="vehicleYear" type="number" required className={inputClass} />
-              </div>
-              <div>
-                <label htmlFor="vehicleMake" className={labelClass}>
-                  Make <span className="text-red-500">*</span>
-                </label>
-                <input id="vehicleMake" name="vehicleMake" required className={inputClass} />
-              </div>
-              <div>
-                <label htmlFor="vehicleModel" className={labelClass}>
-                  Model <span className="text-red-500">*</span>
-                </label>
-                <input id="vehicleModel" name="vehicleModel" required className={inputClass} />
-              </div>
-              <div>
-                <label htmlFor="vehicleVin" className={labelClass}>
-                  VIN
-                </label>
-                <input id="vehicleVin" name="vehicleVin" className={inputClass} />
-              </div>
+            <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+              <VehicleLookupFields namePrefix="vehicle" />
             </div>
 
             <Field name="odometer" label="Odometer in" type="number" />
