@@ -88,3 +88,28 @@ export async function updateGpHrGoal(formData: FormData) {
   revalidatePath("/shop-settings/ro-settings/gp-hr-goal");
   revalidatePath("/reports/profit");
 }
+
+const ADVANCED_SETTING_FIELDS = [
+  "showOdometerInOut",
+  "showMarketingSource",
+  "showTechOnLabor",
+  "showJobCategory",
+  "showPartsPurchaseOrder",
+  "showPartsBilling",
+  "showPaymentCardType",
+  "showTireDotCodes",
+  "showDigitalSignature",
+] as const;
+
+const advancedSettingsSchema = z.object(
+  Object.fromEntries(ADVANCED_SETTING_FIELDS.map((field) => [field, z.coerce.boolean()])),
+);
+
+export async function updateAdvancedSettings(formData: FormData) {
+  const raw = Object.fromEntries(
+    ADVANCED_SETTING_FIELDS.map((field) => [field, formData.get(field) === "on"]),
+  );
+  const data = advancedSettingsSchema.parse(raw);
+  await upsertRoSettings(data);
+  revalidatePath("/shop-settings/ro-settings/advanced-settings");
+}

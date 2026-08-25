@@ -9,6 +9,15 @@ export const DEFAULT_RO_SETTINGS = {
   invoiceNumberPrefix: null as string | null,
   invoiceNumberPadding: 0,
   enabledPaymentMethods: ["CASH", "CARD", "CHECK", "BANK_TRANSFER", "OTHER"] as const,
+  showOdometerInOut: true,
+  showMarketingSource: true,
+  showTechOnLabor: true,
+  showJobCategory: true,
+  showPartsPurchaseOrder: true,
+  showPartsBilling: true,
+  showPaymentCardType: true,
+  showTireDotCodes: true,
+  showDigitalSignature: true,
 };
 
 export async function getRoSettings() {

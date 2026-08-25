@@ -481,6 +481,16 @@ model RoSettings {
   invoiceNumberPadding  Int             @default(0)
   enabledPaymentMethods PaymentMethod[] @default([CASH, CARD, CHECK, BANK_TRANSFER, OTHER])
 
+  showOdometerInOut      Boolean @default(true)
+  showMarketingSource    Boolean @default(true)
+  showTechOnLabor        Boolean @default(true)
+  showJobCategory        Boolean @default(true)
+  showPartsPurchaseOrder Boolean @default(true)
+  showPartsBilling       Boolean @default(true)
+  showPaymentCardType    Boolean @default(true)
+  showTireDotCodes       Boolean @default(true)
+  showDigitalSignature   Boolean @default(true)
+
   updatedAt DateTime @updatedAt
 }
 
