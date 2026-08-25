@@ -585,3 +585,10 @@ model Integration {
 
   @@index([status])
 }
+
+model BillingSettings {
+  id            String @id @default("billing")
+  currentPlanId String @default("free")
+
+  updatedAt DateTime @updatedAt
+}
