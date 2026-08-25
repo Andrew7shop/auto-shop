@@ -162,8 +162,7 @@ export default async function CustomerDetailPage({
             <form action={addVehicle} className="mt-3 space-y-3">
               <input type="hidden" name="customerId" value={customer.id} />
               <VehicleLookupFields />
-              <div className="grid grid-cols-3 gap-3">
-                <Field name="licensePlate" label="License plate" />
+              <div className="grid grid-cols-2 gap-3">
                 <Field name="color" label="Color" />
                 <Field name="mileage" label="Mileage" type="number" />
               </div>

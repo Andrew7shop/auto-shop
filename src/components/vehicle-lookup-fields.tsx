@@ -2,7 +2,12 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { inputClass, labelClass, secondaryButtonClass } from "@/components/form";
-import { decodeVinAction, getVehicleMakesAction, getVehicleModelsAction } from "@/lib/vehicle-lookup-actions";
+import {
+  decodeVinAction,
+  getVehicleMakesAction,
+  getVehicleModelsAction,
+  getKnownEngineTypesAction,
+} from "@/lib/vehicle-lookup-actions";
 
 const OTHER_VALUE = "__other__";
 const MIN_YEAR = 1950;
@@ -29,6 +34,9 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
   const [driveType, setDriveType] = useState("");
   const [driveTypeMode, setDriveTypeMode] = useState<"select" | "manual">("select");
   const [engineType, setEngineType] = useState("");
+  const [engineOptions, setEngineOptions] = useState<string[]>([]);
+  const [engineMode, setEngineMode] = useState<"select" | "manual">("manual");
+  const [licensePlate, setLicensePlate] = useState("");
 
   const [makes, setMakes] = useState<string[] | null>(null);
   const [makeMode, setMakeMode] = useState<"select" | "manual">("select");
@@ -59,6 +67,19 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
     };
   }, [make, year, makeMode, decoded]);
 
+  useEffect(() => {
+    if (decoded || !make || !model) return;
+    let cancelled = false;
+    getKnownEngineTypesAction(make, model).then((result) => {
+      if (cancelled) return;
+      setEngineOptions(result);
+      setEngineMode(result.length > 0 ? "select" : "manual");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [make, model, decoded]);
+
   function handleDecode() {
     setDecodeStatus(null);
     startDecode(async () => {
@@ -84,6 +105,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
         setDriveType("");
         setDriveTypeMode("select");
       }
+      setEngineMode("manual");
       if (result.engineType) {
         setEngineType(result.engineType);
         details.push(result.engineType);
@@ -110,6 +132,8 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
     setDriveType("");
     setDriveTypeMode("select");
     setEngineType("");
+    setEngineOptions([]);
+    setEngineMode("manual");
   }
 
   const yearOptions = year && !YEARS.includes(Number(year)) ? [Number(year), ...YEARS] : YEARS;
@@ -302,18 +326,59 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
         </div>
       </div>
 
-      <div>
-        <label htmlFor={fieldName("engineType")} className={labelClass}>
-          Engine
-        </label>
-        <input
-          id={fieldName("engineType")}
-          name={fieldName("engineType")}
-          className={inputClass}
-          placeholder="e.g. 3.5L V6 Gasoline"
-          value={engineType}
-          onChange={(e) => setEngineType(e.target.value)}
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor={fieldName("engineType")} className={labelClass}>
+            Engine
+          </label>
+          {engineMode === "select" ? (
+            <select
+              id={fieldName("engineType")}
+              name={fieldName("engineType")}
+              className={inputClass}
+              value={engineType}
+              onChange={(e) => {
+                if (e.target.value === OTHER_VALUE) {
+                  setEngineMode("manual");
+                  setEngineType("");
+                } else {
+                  setEngineType(e.target.value);
+                }
+              }}
+              disabled={!make || !model}
+            >
+              <option value="">Select from vehicles on file</option>
+              {engineOptions.map((e) => (
+                <option key={e} value={e}>
+                  {e}
+                </option>
+              ))}
+              <option value={OTHER_VALUE}>Other / type new</option>
+            </select>
+          ) : (
+            <input
+              id={fieldName("engineType")}
+              name={fieldName("engineType")}
+              className={inputClass}
+              placeholder="e.g. 3.5L V6 Gasoline"
+              value={engineType}
+              onChange={(e) => setEngineType(e.target.value)}
+            />
+          )}
+        </div>
+
+        <div>
+          <label htmlFor={fieldName("licensePlate")} className={labelClass}>
+            License plate
+          </label>
+          <input
+            id={fieldName("licensePlate")}
+            name={fieldName("licensePlate")}
+            className={inputClass}
+            value={licensePlate}
+            onChange={(e) => setLicensePlate(e.target.value)}
+          />
+        </div>
       </div>
     </div>
   );
