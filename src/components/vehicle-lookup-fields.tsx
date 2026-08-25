@@ -35,8 +35,9 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
   const [driveTypeMode, setDriveTypeMode] = useState<"select" | "manual">("select");
   const [engineType, setEngineType] = useState("");
   const [engineOptions, setEngineOptions] = useState<string[]>([]);
-  const [engineMode, setEngineMode] = useState<"select" | "manual">("manual");
+  const [engineMode, setEngineMode] = useState<"select" | "manual">("select");
   const [licensePlate, setLicensePlate] = useState("");
+  const [color, setColor] = useState("");
 
   const [makes, setMakes] = useState<string[] | null>(null);
   const [makeMode, setMakeMode] = useState<"select" | "manual">("select");
@@ -73,7 +74,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
     getKnownEngineTypesAction(make, model).then((result) => {
       if (cancelled) return;
       setEngineOptions(result);
-      setEngineMode(result.length > 0 ? "select" : "manual");
+      setEngineMode("select");
     });
     return () => {
       cancelled = true;
@@ -133,7 +134,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
     setDriveTypeMode("select");
     setEngineType("");
     setEngineOptions([]);
-    setEngineMode("manual");
+    setEngineMode("select");
   }
 
   const yearOptions = year && !YEARS.includes(Number(year)) ? [Number(year), ...YEARS] : YEARS;
@@ -326,7 +327,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor={fieldName("engineType")} className={labelClass}>
             Engine
@@ -377,6 +378,19 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
             className={inputClass}
             value={licensePlate}
             onChange={(e) => setLicensePlate(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label htmlFor={fieldName("color")} className={labelClass}>
+            Color
+          </label>
+          <input
+            id={fieldName("color")}
+            name={fieldName("color")}
+            className={inputClass}
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
           />
         </div>
       </div>
