@@ -28,6 +28,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
   const [model, setModel] = useState("");
   const [driveType, setDriveType] = useState("");
   const [driveTypeMode, setDriveTypeMode] = useState<"select" | "manual">("select");
+  const [engineType, setEngineType] = useState("");
 
   const [makes, setMakes] = useState<string[] | null>(null);
   const [makeMode, setMakeMode] = useState<"select" | "manual">("select");
@@ -73,16 +74,26 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
       setModelMode("manual");
       setDecoded(true);
 
-      let driveMessage = "";
+      const details: string[] = [];
       if (result.driveType) {
         const normalized = normalizeDriveType(result.driveType);
         setDriveType(normalized);
         setDriveTypeMode(DRIVE_TYPES.includes(normalized) ? "select" : "manual");
-        driveMessage = ` (${normalized})`;
+        details.push(normalized);
+      } else {
+        setDriveType("");
+        setDriveTypeMode("select");
       }
+      if (result.engineType) {
+        setEngineType(result.engineType);
+        details.push(result.engineType);
+      } else {
+        setEngineType("");
+      }
+      const detailMessage = details.length > 0 ? ` (${details.join(", ")})` : "";
       setDecodeStatus({
         type: "success",
-        message: `Decoded: ${result.year} ${result.make} ${result.model}${driveMessage}`,
+        message: `Decoded: ${result.year} ${result.make} ${result.model}${detailMessage}`,
       });
     });
   }
@@ -98,6 +109,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
     setMakeMode(makes && makes.length > 0 ? "select" : "manual");
     setDriveType("");
     setDriveTypeMode("select");
+    setEngineType("");
   }
 
   const yearOptions = year && !YEARS.includes(Number(year)) ? [Number(year), ...YEARS] : YEARS;
@@ -288,6 +300,20 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
             />
           )}
         </div>
+      </div>
+
+      <div>
+        <label htmlFor={fieldName("engineType")} className={labelClass}>
+          Engine
+        </label>
+        <input
+          id={fieldName("engineType")}
+          name={fieldName("engineType")}
+          className={inputClass}
+          placeholder="e.g. 3.5L V6 Gasoline"
+          value={engineType}
+          onChange={(e) => setEngineType(e.target.value)}
+        />
       </div>
     </div>
   );

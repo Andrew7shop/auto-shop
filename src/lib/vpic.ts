@@ -12,6 +12,40 @@ export interface DecodedVin {
   make: string;
   model: string;
   driveType?: string;
+  engineType?: string;
+}
+
+const ENGINE_CONFIG_SHORTHAND: Record<string, string> = {
+  "In-Line": "I",
+  "V-Shaped": "V",
+  "W Shaped": "W",
+  "Horizontally Opposed (boxer)": "Flat",
+  Rotary: "Rotary",
+};
+
+// Composes a shop-readable summary (e.g. "3.5L V6 Gasoline", "Electric") from the
+// separate displacement/cylinder/configuration/fuel fields vPIC returns.
+function buildEngineType(result: Record<string, string>): string | undefined {
+  const parts: string[] = [];
+
+  const displacement = Number(result.DisplacementL);
+  if (Number.isFinite(displacement) && displacement > 0) {
+    parts.push(`${displacement.toFixed(1)}L`);
+  }
+
+  const cylinders = result.EngineCylinders?.trim();
+  const config = result.EngineConfiguration?.trim();
+  const shorthand = config ? ENGINE_CONFIG_SHORTHAND[config] : undefined;
+  if (shorthand && cylinders) {
+    parts.push(`${shorthand}${cylinders}`);
+  } else if (cylinders) {
+    parts.push(`${cylinders}-cyl`);
+  }
+
+  const fuel = result.FuelTypePrimary?.trim();
+  if (fuel) parts.push(fuel);
+
+  return parts.length > 0 ? parts.join(" ") : undefined;
 }
 
 export async function decodeVin(vin: string): Promise<DecodedVin | { error: string }> {
@@ -40,8 +74,9 @@ export async function decodeVin(vin: string): Promise<DecodedVin | { error: stri
   }
 
   const driveType = result?.DriveType?.trim() || undefined;
+  const engineType = result ? buildEngineType(result) : undefined;
 
-  return { year, make, model, driveType };
+  return { year, make, model, driveType, engineType };
 }
 
 export async function getVehicleMakes(): Promise<string[]> {

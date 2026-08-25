@@ -101,6 +101,7 @@ export default async function CustomerDetailPage({
                 </p>
                 <p className="text-xs text-zinc-500">
                   {[
+                    vehicle.engineType,
                     vehicle.driveType,
                     vehicle.licensePlate,
                     vehicle.vin,
@@ -127,7 +128,7 @@ export default async function CustomerDetailPage({
                   />
                   <Field name="driveType" label="Drivetrain" defaultValue={vehicle.driveType ?? undefined} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <Field name="color" label="Color" defaultValue={vehicle.color ?? undefined} />
                   <Field
                     name="mileage"
@@ -135,6 +136,7 @@ export default async function CustomerDetailPage({
                     type="number"
                     defaultValue={vehicle.mileage ?? undefined}
                   />
+                  <Field name="engineType" label="Engine" defaultValue={vehicle.engineType ?? undefined} />
                 </div>
                 <button type="submit" className={primaryButtonClass}>
                   Save changes

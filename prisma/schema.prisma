@@ -51,6 +51,7 @@ model Vehicle {
   color        String?
   mileage      Int?
   driveType    String?
+  engineType   String?
   notes        String?
 
   customerId String
