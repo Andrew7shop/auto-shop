@@ -134,7 +134,13 @@ export default async function NewWorkOrderPage({ searchParams }: PageProps<"/wor
         <input type="hidden" name="customerId" value={customer.id} />
 
         <VehicleSelectFields
-          vehicles={customer.vehicles.map((v) => ({ id: v.id, year: v.year, make: v.make, model: v.model }))}
+          vehicles={customer.vehicles.map((v) => ({
+            id: v.id,
+            year: v.year,
+            make: v.make,
+            model: v.model,
+            engineType: v.engineType,
+          }))}
         />
 
         <Field name="odometer" label="Odometer in" type="number" />

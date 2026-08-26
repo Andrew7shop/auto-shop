@@ -156,31 +156,40 @@ export async function createWorkOrder(formData: FormData) {
 
   const isNewVehicle = data.vehicleId === NEW_VEHICLE_VALUE;
 
-  const workOrder = await prisma.workOrder.create({
-    data: {
-      customer: { connect: { id: data.customerId } },
-      vehicle: isNewVehicle
-        ? {
-            create: {
-              year: data.vehicleYear!,
-              make: data.vehicleMake!,
-              model: data.vehicleModel!,
-              vin: data.vehicleVin || null,
-              driveType: data.vehicleDriveType || null,
-            engineType: data.vehicleEngineType || null,
-            licensePlate: data.vehicleLicensePlate || null,
-            color: data.vehicleColor || null,
-              customer: { connect: { id: data.customerId } },
-            },
-          }
-        : { connect: { id: data.vehicleId } },
-      category: data.categoryId ? { connect: { id: data.categoryId } } : undefined,
-      description,
-      odometer: data.odometer ?? null,
-      arrivalType: data.arrivalType,
-      laborRate: data.laborRateId ? { connect: { id: data.laborRateId } } : undefined,
-      marketingSource: data.marketingSourceId ? { connect: { id: data.marketingSourceId } } : undefined,
-    },
+  const workOrder = await prisma.$transaction(async (tx) => {
+    if (!isNewVehicle && data.vehicleEngineType) {
+      await tx.vehicle.update({
+        where: { id: data.vehicleId },
+        data: { engineType: data.vehicleEngineType },
+      });
+    }
+
+    return tx.workOrder.create({
+      data: {
+        customer: { connect: { id: data.customerId } },
+        vehicle: isNewVehicle
+          ? {
+              create: {
+                year: data.vehicleYear!,
+                make: data.vehicleMake!,
+                model: data.vehicleModel!,
+                vin: data.vehicleVin || null,
+                driveType: data.vehicleDriveType || null,
+                engineType: data.vehicleEngineType || null,
+                licensePlate: data.vehicleLicensePlate || null,
+                color: data.vehicleColor || null,
+                customer: { connect: { id: data.customerId } },
+              },
+            }
+          : { connect: { id: data.vehicleId } },
+        category: data.categoryId ? { connect: { id: data.categoryId } } : undefined,
+        description,
+        odometer: data.odometer ?? null,
+        arrivalType: data.arrivalType,
+        laborRate: data.laborRateId ? { connect: { id: data.laborRateId } } : undefined,
+        marketingSource: data.marketingSourceId ? { connect: { id: data.marketingSourceId } } : undefined,
+      },
+    });
   });
 
   revalidatePath("/work-orders");
