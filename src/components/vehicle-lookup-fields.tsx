@@ -71,7 +71,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
   useEffect(() => {
     if (decoded || !make || !model) return;
     let cancelled = false;
-    getKnownEngineTypesAction(make, model).then((result) => {
+    getKnownEngineTypesAction(make, model, year ? Number(year) : undefined).then((result) => {
       if (cancelled) return;
       setEngineOptions(result);
       setEngineMode("select");
@@ -79,7 +79,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
     return () => {
       cancelled = true;
     };
-  }, [make, model, decoded]);
+  }, [make, model, year, decoded]);
 
   function handleDecode() {
     setDecodeStatus(null);
@@ -348,7 +348,7 @@ export function VehicleLookupFields({ namePrefix = "" }: { namePrefix?: string }
               }}
               disabled={!make || !model}
             >
-              <option value="">Select from vehicles on file</option>
+              <option value="">Select engine</option>
               {engineOptions.map((e) => (
                 <option key={e} value={e}>
                   {e}

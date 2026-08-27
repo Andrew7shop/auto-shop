@@ -25,7 +25,7 @@ export function VehicleSelectFields({ vehicles }: { vehicles: VehicleOption[] })
     setEngineMode("select");
     setEngineOptions([]);
     let cancelled = false;
-    getKnownEngineTypesAction(selectedVehicle.make, selectedVehicle.model).then((result) => {
+    getKnownEngineTypesAction(selectedVehicle.make, selectedVehicle.model, selectedVehicle.year).then((result) => {
       if (cancelled) return;
       setEngineOptions(result);
     });
