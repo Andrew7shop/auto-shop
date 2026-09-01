@@ -108,6 +108,17 @@ export async function getVehicleMakes(): Promise<string[]> {
   }
 }
 
+// NHTSA reports GM's full-size pickups under one generic name regardless of tonnage —
+// "Silverado"/"Sierra" cover the 1500, 2500HD, and 3500HD alike, unlike Ford (F-150 vs.
+// F-250 vs. F-350) or Ram (1500 vs. 2500 vs. 3500), which are already distinct model
+// names in vPIC. Expanding the generic name into its three real trim-series here is what
+// lets the Model dropdown — and in turn the engine catalog lookup keyed off it — tell a
+// 1500 apart from an HD.
+const GM_TRUCK_TONNAGE_VARIANTS: Record<string, string[]> = {
+  Silverado: ["Silverado 1500", "Silverado 2500HD", "Silverado 3500HD"],
+  Sierra: ["Sierra 1500", "Sierra 2500HD", "Sierra 3500HD"],
+};
+
 export async function getVehicleModels(make: string, year: number): Promise<string[]> {
   const trimmedMake = make.trim();
   if (!trimmedMake || !Number.isInteger(year)) return [];
@@ -121,6 +132,11 @@ export async function getVehicleModels(make: string, year: number): Promise<stri
     const names = new Set<string>();
     for (const row of json.Results ?? []) {
       if (row.Model_Name) names.add(row.Model_Name.trim());
+    }
+    for (const [generic, variants] of Object.entries(GM_TRUCK_TONNAGE_VARIANTS)) {
+      if (names.delete(generic)) {
+        for (const variant of variants) names.add(variant);
+      }
     }
     return [...names].sort((a, b) => a.localeCompare(b));
   } catch {
