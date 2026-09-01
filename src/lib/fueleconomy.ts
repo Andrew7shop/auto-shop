@@ -133,7 +133,25 @@ function matchesModel(feModelName: string, ourModel: string): boolean {
   return feNorm.startsWith(ourNorm);
 }
 
-const MAX_OPTION_IDS = 25;
+// Some makes drop their trim-series number from fueleconomy.gov's model name entirely
+// rather than appending a body-style suffix to it — e.g. our "Silverado 1500"/"Sierra
+// 2500HD" vs. their bare "Silverado 2WD"/"Sierra 4WD" — so a full-name prefix match
+// finds nothing. Falling back to just the first word ("Silverado") only when the full
+// match came up empty recovers these without loosening the exact-trim matches (like
+// "Accord Hybrid") that already succeed under the stricter rule above.
+function findMatchedModelNames(feModelNames: string[], ourModel: string): string[] {
+  const exact = feModelNames.filter((name) => matchesModel(name, ourModel));
+  if (exact.length > 0) return exact;
+
+  const firstWord = ourModel.trim().split(/\s+/)[0];
+  if (!firstWord || normalize(firstWord) === normalize(ourModel)) return exact;
+  return feModelNames.filter((name) => matchesModel(name, firstWord));
+}
+
+// A generous ceiling, not a tuned budget — these are small XML fetches, and even a
+// high-trim-count truck (e.g. Silverado 1500, ~35 configurations across body styles)
+// stays well under it, so it should only ever guard against a pathological match.
+const MAX_OPTION_IDS = 100;
 
 export async function getFuelEconomyEngineOptions(year: number, make: string, model: string): Promise<string[]> {
   const trimmedMake = make.trim();
@@ -145,9 +163,10 @@ export async function getFuelEconomyEngineOptions(year: number, make: string, mo
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return cached.engines;
 
   const modelList = await getModelListForYearMake(year, trimmedMake);
-  const matchedModelNames = modelList
-    .map((item) => item.value)
-    .filter((name) => matchesModel(name, trimmedModel));
+  const matchedModelNames = findMatchedModelNames(
+    modelList.map((item) => item.value),
+    trimmedModel,
+  );
   // The model name itself is sometimes already the exact trim (seen with single-trim
   // EVs), so it's always worth trying directly even if it wasn't in the year/make list.
   if (!matchedModelNames.some((name) => normalize(name) === normalize(trimmedModel))) {
@@ -161,7 +180,6 @@ export async function getFuelEconomyEngineOptions(year: number, make: string, mo
   const optionIds = new Set<string>();
   for (const options of optionLists) {
     for (const option of options) optionIds.add(option.value);
-    if (optionIds.size >= MAX_OPTION_IDS) break;
   }
 
   const details = await Promise.all([...optionIds].slice(0, MAX_OPTION_IDS).map((id) => fetchVehicleDetail(id)));
